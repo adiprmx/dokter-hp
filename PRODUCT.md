@@ -3,7 +3,7 @@
 > **Dokumen ini adalah spesifikasi produk (PRD) Dokter HP v1.0.0.**
 > Bahasa: Bahasa Indonesia. Status: v1.0.0 selesai. Audit desain
 > dan tulisan 11 November 2026 sudah diterapkan, `flutter analyze`
-> bersih dan `flutter test` hijau (39/39).
+> bersih dan `flutter test` hijau (50/50, terverifikasi 11 November 2026).
 
 ---
 
@@ -337,8 +337,9 @@ lib/
 - [x] `flutter analyze` tanpa error (11 November 2026: No issues found).
 - [x] `flutter test` hijau (11 November 2026: 39/39): unit skor kesehatan, logika WiFi, widget
       dashboard (termasuk navigasi ke Dokter WiFi).
-- [ ] Build APK release berhasil di GitHub Actions, mode lokal (tanpa
-      secret) maupun dengan secret Supabase.
+- [x] Build APK release berhasil di GitHub Actions, mode lokal (tanpa
+      secret): run #1 dan #2 success (11 November 2026). Build dengan
+      secret Supabase masih menunggu proyek Supabase (lihat bagian 15).
 - [ ] Dokter WiFi menampilkan hasil ukur nyata di perangkat Android.
 - [ ] Semua layar tanpa data menampilkan empty state jujur.
 - [ ] Tidak ada angka dummy yang tampil seolah data nyata.
@@ -387,3 +388,64 @@ lib/
 - Mode lokal penuh tanpa Supabase.
 - CI GitHub Actions: Flutter 3.47.6, Java 17, analyze + test + build APK
   release, artifact `dokter-hp-apk` (retensi 14 hari).
+
+## 15. Status rilis dan backend (12 November 2026, 00:50 WIB)
+
+### 15.1 Unduh APK v1.0.0
+
+- **Tautan langsung (penyimpanan Muse):**
+  https://muse.ai/files/1322007367664190/1438719488415856/xu7rxb7e6qux2y97kgk4d6gg/app-release.apk
+  — 57.500.422 byte, terverifikasi sebagai paket Android yang valid
+  (`classes.dex`, `AndroidManifest.xml`, `libflutter.so` untuk
+  arm64-v8a, armeabi-v7a, x86_64). SHA-256 artefak zip:
+  `44d160c12537a5d27d8b772cf9c8d216c07f33baea75615263d6a3f640a72f6f`.
+  Tautan kedaluwarsa **14 November 2026 00:49 WIB**.
+- **Cadangan:** artefak `dokter-hp-apk` dari GitHub Actions
+  [run #2](https://github.com/adiprmx/dokter-hp/actions/runs/43064181936)
+  (26.966.859 byte, perlu login GitHub, kedaluwarsa
+  26 November 2026 00:11 WIB).
+- Halaman Release v1.0.0 masih 0 aset — APK belum terlampir di Release;
+  lampiran butuh langkah lewat browser dengan login GitHub.
+- Catatan: egress VM sempat mati total 12 November 2026 00:20–00:35 WIB
+  sehingga unduhan artefak sempat gagal dua kali; unduhan berhasil
+  setelah egress pulih (00:45 WIB). Angka ukuran APK yang tercatat
+  sebelumnya (57.483.494 byte) dikoreksi ke hasil ukur nyata
+  57.500.422 byte.
+
+### 15.2 Backend Supabase: TERBLOKIR
+
+Proyek Supabase baru tidak bisa dibuat di akun ini. Bukti dari
+Supabase Management API (akun adiprmx, dicek live 12 November 2026):
+organisasi yang ada hanya `adipmusic`; proyek aktif 2, keduanya
+`ACTIVE_HEALTHY` (`adipmusic` dan `adipqris-sg`). Pembuatan proyek di
+organisasi baru `dokter-hp` ditolak ("tidak punya privileges"), dan
+uji pembeda di organisasi lama memberi pesan eksplisit bahwa anggota
+adiprmx sudah mencapai limit 2 proyek gratis. Kesimpulan: limit
+dihitung per anggota di semua organisasi tempat ia Owner/Admin —
+organisasi baru tidak mengakali limit ini. Detail lengkap di
+`supabase/STATUS_BACKEND.md`.
+
+Yang sudah siap: 4 migrasi (`profiles`, `health_checks`,
+`wifi_reports`, `ai_diagnoses`) dengan RLS + 4 policy per tabel;
+Edge Function `ai-diagnose` dan `fcm-notify` (`verify_jwt = true`).
+Yang belum bisa: migrasi, deploy function, dan isi secret — semuanya
+menunggu proyek target.
+
+### 15.3 Secret
+
+- `GEMINI_API_KEY`: file lokal ada (`~/workspace/secrets/gemini-api-key.txt`,
+  54 byte, 22 Oktober 2026) tetapi dibuat sebelum proyek Dokter HP
+  dibuat, jadi validitasnya untuk proyek ini belum terkonfirmasi dan
+  isinya tidak dibaca. Secret ini belum diatur di Supabase karena
+  proyeknya belum ada. Tidak ada konektor Gemini yang sah di workspace.
+- GitHub secrets `SUPABASE_URL` / `SUPABASE_ANON_KEY`: belum terisi,
+  karena belum ada proyek Supabase untuk Dokter HP.
+- `fcm-notify` juga butuh `FCM_NOTIFY_ALLOWED_USER_IDS`,
+  `FCM_PROJECT_ID`, `FCM_ACCESS_TOKEN` (semua belum tersedia).
+
+### 15.4 Yang masih butuh owner (keputusan, bukan teknis)
+
+Pilih satu dari 4 opsi gratis: (A) pause salah satu proyek yang ada
+(mematikan layanannya), (B) buat proyek di akun Supabase lain milik
+owner, (C) numpang di proyek yang ada, (D) pindah backend ke Firebase.
+Sampai ada keputusan, aplikasi berjalan penuh dalam mode lokal.

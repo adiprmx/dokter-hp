@@ -3,6 +3,40 @@
 Aplikasi Android untuk mendeteksi dan memperbaiki masalah HP: WiFi lemot,
 baterai boros, penyimpanan penuh, performa berat, dan keamanan.
 
+## Status rilis v1.0.0 (12 November 2026)
+
+- Repo public: https://github.com/adiprmx/dokter-hp
+- Rilis: https://github.com/adiprmx/dokter-hp/releases/tag/v1.0.0
+- `flutter analyze` tanpa masalah, `flutter test` 50 dari 50 lulus
+  (11 November 2026). CI GitHub Actions run #1 dan #2 success.
+
+### Unduh APK
+
+- **Tautan langsung:** https://muse.ai/files/1322007367664190/1438719488415856/xu7rxb7e6qux2y97kgk4d6gg/app-release.apk
+  (57.500.422 byte; tautan ini kedaluwarsa 14 November 2026 00:49 WIB,
+  minta tautan baru bila sudah lewat tanggal itu.)
+- **Cadangan lewat GitHub Actions:** artefak `dokter-hp-apk` dari
+  [run #2](https://github.com/adiprmx/dokter-hp/actions/runs/43064181936)
+  (perlu login GitHub; kedaluwarsa 26 November 2026 00:11 WIB).
+- Halaman Release v1.0.0 saat ini belum melampirkan APK (0 aset);
+  lampiran ke Release masih menunggu langkah lewat browser.
+
+### Status backend Supabase: TERBLOKIR (menunggu keputusan owner)
+
+Proyek Supabase baru tidak bisa dibuat di akun ini: limit 2 proyek
+gratis dihitung per anggota (adiprmx) di semua organisasi, dan kedua
+proyek yang ada (`adipmusic`, `adipqris-sg`) masih aktif. Organisasi
+baru tidak mengakali limit ini (terverifikasi lewat Management API,
+12 November 2026). Migrasi 4 tabel dan Edge Function `ai-diagnose`
+dan `fcm-notify` sudah siap dan tinggal dijalankan begitu proyek
+tersedia. Detail lengkap di `supabase/STATUS_BACKEND.md`.
+
+Pilihan gratis yang tersisa (perlu dipilih owner): (A) pause salah satu
+proyek yang ada, (B) buat proyek di akun Supabase lain milik owner,
+(C) numpang di proyek yang ada, (D) pindah backend ke Firebase.
+Sampai ada keputusan, aplikasi berjalan penuh dalam mode lokal:
+login Google, Diagnosis AI, dan sinkronisasi riwayat belum aktif.
+
 Aplikasi berjalan penuh dalam **mode lokal**. Semua diagnosis memakai data
 nyata dari perangkat dan tersimpan di database lokal. Bila server Supabase
 dikonfigurasi, tersedia tambahan: login Google, Diagnosis AI, dan
