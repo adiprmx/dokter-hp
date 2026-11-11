@@ -20,3 +20,8 @@ lib/data/local/app_database.g.dart
 # OS
 .DS_Store
 Thumbs.db
+
+# Secret lokal — JANGAN PERNAH di-commit (insiden 12 Nov 2026: kata sandi
+# database sempat ter-push di commit 5019c158, lalu dihapus di commit
+# 77d7bc68; nilai itu sudah dibuang dan tidak boleh dipakai lagi).
+secrets/

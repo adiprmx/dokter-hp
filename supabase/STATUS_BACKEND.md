@@ -35,9 +35,15 @@ independen.
 - Edge Function `ai-diagnose` dan `fcm-notify` ada di `supabase/functions/`;
   keduanya `verify_jwt = true` di `config.toml`. `fcm-notify` hanya admin
   via allowlist (`FCM_NOTIFY_ALLOWED_USER_IDS`).
-- Password database proyek sudah dibuat acak dan disimpan (0600) di
-  `secrets/supabase-db-pass.txt` — JANGAN dicetak atau dikirim lewat chat.
-  Dipakai untuk pembuatan proyek nanti.
+- Password database proyek yang sempat dibuat acak SUDAH DIBUANG.
+  INSIDEN 12 Nov 2026 ~00:50 WIB: file `secrets/supabase-db-pass.txt`
+  tidak sengaja ter-push ke repo publik di commit 5019c158 (karena
+  `.gitignore` belum mengecualikan `secrets/`). File sudah dihapus dari
+  `main` di commit 77d7bc68 dan salinan lokal sudah dihapus. Nilai itu
+  tidak pernah dipakai untuk database live apa pun (proyek tidak pernah
+  dibuat), tetapi tetap TIDAK BOLEH dipakai lagi — saat proyek dibuat
+  nanti, buat kata sandi baru yang baru. `.gitignore` sekarang
+  mengecualikan `secrets/`.
 
 ## Yang belum bisa dilakukan (menunggu keputusan owner)
 
