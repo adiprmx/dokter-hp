@@ -1,8 +1,9 @@
-# PRODUCT.md — Dokter HP
+# PRODUCT.md: Dokter HP
 
 > **Dokumen ini adalah spesifikasi produk (PRD) Dokter HP v1.0.0.**
-> Bahasa: Bahasa Indonesia. Status: implementasi v1 selesai di repo,
-> menunggu verifikasi build CI.
+> Bahasa: Bahasa Indonesia. Status: v1.0.0 selesai. Audit desain
+> dan tulisan 11 November 2026 sudah diterapkan, `flutter analyze`
+> bersih dan `flutter test` hijau (39/39).
 
 ---
 
@@ -40,7 +41,7 @@ batasan Android.
 - Bukan aplikasi penguat sinyal, bukan VPN, bukan "pembersih RAM" yang
   menutup paksa aplikasi lain (Android melarangnya).
 - Bukan pengganti teknisi untuk kerusakan perangkat keras.
-- Bukan alat pembayaran — tanpa payment gateway.
+- Bukan alat pembayaran. Tanpa payment gateway.
 
 ## 2. Pengguna
 
@@ -135,6 +136,21 @@ batasan Android.
   Mode lokal menampilkan kondisi jujur dan menyembunyikan tombol login.
 - **PIN lokal**: 4-8 digit angka, disimpan sebagai hash SHA-256 + salt
   di `flutter_secure_storage`; PIN asli tidak pernah disimpan.
+- **Gerbang kunci**: bila PIN sudah diatur, aplikasi menampilkan layar
+  kunci PIN/biometrik sebelum dashboard setiap kali dibuka
+  (`LockGate` di `lib/features/auth/lock_gate.dart`). Bila PIN belum
+  diatur, aplikasi langsung terbuka tanpa memaksa; penawaran mengatur
+  PIN ada di halaman ini. Setelah 5 kali PIN salah berturut-turut,
+  masukan dikunci 30 detik.
+- **Pemulihan bila PIN lupa**: PIN hanya tersimpan lokal sebagai hash,
+  jadi tidak ada reset lewat server dan akun Supabase pengguna tidak
+  ikut terkunci. Satu-satunya jalan pemulihan adalah menghapus data
+  aplikasi lewat Pengaturan Android > Aplikasi > Dokter HP >
+  Penyimpanan > Hapus data, lalu membuka kembali aplikasi dan
+  mengatur PIN baru. Riwayat yang sudah tersinkron ke server tetap
+  aman dan kembali setelah masuk; riwayat lokal yang belum
+  tersinkron akan hilang. Jalan ini dijelaskan di layar kunci
+  (dialog "Lupa PIN?") dan di halaman ini.
 - **Biometrik**: sidik jari/wajah lewat autentikasi sistem
   (`local_auth`); data biometrik tidak pernah disimpan aplikasi.
 
@@ -142,7 +158,7 @@ batasan Android.
 
 - Kirim keluhan + ringkasan data perangkat ke Supabase Edge Function
   `ai-diagnose` dan tampilkan jawabannya.
-- Kunci Gemini TIDAK PERNAH ada di APK — hanya tersimpan sebagai secret
+- Kunci Gemini TIDAK PERNAH ada di APK. Kunci hanya tersimpan sebagai secret
   di sisi server Supabase.
 - Mode lokal: fitur menampilkan pesan jujur bahwa Diagnosis AI belum
   tersedia.
@@ -150,8 +166,11 @@ batasan Android.
 
 ## 4. Fitur v2 (rencana, belum dikerjakan)
 
-- Sinkronisasi riwayat ke Supabase bila pengguna masuk (fondasi sudah
-  ada: kolom `sync_status` dan `SupabaseSyncService`).
+- Sinkronisasi riwayat ke Supabase bila pengguna masuk — pemetaan
+  kolom, `user_id`, dan penandaan gagal sudah diterapkan di
+  `SupabaseSyncService` (temuan QA S-1, 11 Nov 2026); verifikasi
+  live ke proyek Supabase masih menunggu (belum ada proyek yang
+  terhubung dari workdir ini).
 - Diagnosis AI memakai ringkasan data perangkat otomatis.
 - Notifikasi bila skor kesehatan turun.
 - Panduan router per merek (ZTE, Huawei, TP-Link) berdasarkan hasil ukur.
@@ -187,7 +206,12 @@ batasan Android.
 1. Buka **Akun dan keamanan** (ikon orang di dashboard).
 2. Atur PIN 4-8 digit → disimpan sebagai hash.
 3. Aktifkan biometrik bila perangkat mendukung → uji langsung.
-4. Masuk Google (bila server tersambung) untuk sinkronisasi di v2.
+4. Tutup lalu buka kembali aplikasi → layar kunci tampil sebelum
+   dashboard; masukkan PIN (atau biometrik bila aktif) untuk membuka.
+5. Bila PIN lupa: ketuk "Lupa PIN?" di layar kunci dan ikuti jalan
+   pemulihan di sana (hapus data aplikasi lewat Pengaturan Android;
+   akun dan data server tetap aman, lihat bagian 3.8).
+6. Masuk Google (bila server tersambung) untuk sinkronisasi.
 
 ### 5.4 Alur laporan PDF
 
@@ -289,22 +313,29 @@ lib/
 - **Tema**: Material 3 terang, basis putih, aksen hitam/abu-abu. Tanpa
   warna dekoratif (tanpa kuning/amber). Font sistem (tanpa unduhan font,
   agar build offline tidak gagal). Tanpa font serif Didone/Playfair.
+  Tombol dan area sentuh minimal 48 px. Teks sekunder memakai abu
+  #757575 (kontras 4,6:1 terhadap putih, lolos WCAG AA).
 
 ## 9. Prinsip kejujuran data (aturan produk)
 
 1. Semua angka yang tampil adalah data nyata dari perangkat.
 2. Bila data tidak tersedia, tampilkan "tidak tersedia" atau empty state
-   "Belum ada data pemeriksaan" — bukan angka contoh.
+   "Belum ada data pemeriksaan", bukan angka contoh.
 3. Estimasi diberi label perkiraan, bukan pengukuran pasti.
 4. Latensi disebut "latensi HTTP", bukan "ping", karena bukan ICMP.
 5. Batasan Android dijelaskan di layar terkait, beserta cara manual.
 6. Skor dihitung hanya dari komponen yang datanya tersedia; komponen
    tanpa data dilewati dan bobot dinormalisasi ulang.
+7. Setiap layar yang memuat data punya tiga kondisi: memuat (dengan
+   teks yang menjelaskan), galat (dengan tombol "Coba lagi"), dan
+   kosong yang jujur (bukan angka contoh).
+8. Pesan galat ditulis dengan bahasa sehari-hari dan tidak menampilkan
+   rincian teknis dari sistem.
 
 ## 10. Kriteria selesai v1 (terukur)
 
-- [ ] `flutter analyze` tanpa error.
-- [ ] `flutter test` hijau: unit skor kesehatan, logika WiFi, widget
+- [x] `flutter analyze` tanpa error (11 November 2026: No issues found).
+- [x] `flutter test` hijau (11 November 2026: 39/39): unit skor kesehatan, logika WiFi, widget
       dashboard (termasuk navigasi ke Dokter WiFi).
 - [ ] Build APK release berhasil di GitHub Actions, mode lokal (tanpa
       secret) maupun dengan secret Supabase.
@@ -344,7 +375,7 @@ lib/
 
 ## 14. Changelog
 
-### v1.0.0 (11 November 2026) — rilis pertama
+### v1.0.0 (11 November 2026), rilis pertama
 
 - Dashboard dengan skor kesehatan 0-100 dan diagnosis satu ketuk.
 - Dokter WiFi: tes unduh, latensi HTTP, info jaringan, sinyal, channel,

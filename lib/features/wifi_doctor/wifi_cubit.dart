@@ -77,11 +77,12 @@ class WifiCubit extends Cubit<WifiState> {
       }
       emit(state.copyWith(status: WifiStatus.selesai, hasil: hasil));
       await _simpanLaporan(hasil);
-    } catch (e) {
+    } catch (_) {
       emit(
         state.copyWith(
           status: WifiStatus.gagal,
-          pesan: 'Pemeriksaan gagal: $e',
+          pesan: 'Pemeriksaan gagal. Periksa sambungan internet, '
+              'lalu coba lagi.',
         ),
       );
     }
@@ -108,7 +109,7 @@ class WifiCubit extends Cubit<WifiState> {
         ),
       );
     } catch (_) {
-      // Riwayat gagal disimpan — hasil ukur tetap tampil.
+      // Riwayat gagal disimpan, hasil ukur tetap tampil.
     }
   }
 }

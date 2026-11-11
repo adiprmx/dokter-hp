@@ -6,7 +6,7 @@ import 'package:printing/printing.dart';
 /// Pembuat laporan PDF dari riwayat pemeriksaan.
 ///
 /// Laporan hanya berisi data yang benar-benar tercatat. Bila riwayat
-/// kosong, laporan tidak dibuat — pemanggil menampilkan empty state.
+/// kosong, laporan tidak dibuat, pemanggil menampilkan empty state.
 class PdfReportService {
   PdfReportService({required this.database});
 

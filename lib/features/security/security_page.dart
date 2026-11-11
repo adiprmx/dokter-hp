@@ -6,7 +6,7 @@ import 'package:dokter_hp/core/widgets/common_widgets.dart';
 ///
 /// Membaca daftar aplikasi terpasang dari PackageManager dan menghitung
 /// izin berbahaya tiap aplikasi. Aplikasi yang meminta banyak izin
-/// berbahaya dan jarang dipakai ditandai untuk ditinjau — keputusan
+/// berbahaya dan jarang dipakai ditandai untuk ditinjau, keputusan
 /// hapus tetap di tangan pengguna lewat pengaturan sistem.
 class SecurityPage extends StatefulWidget {
   const SecurityPage({super.key});
@@ -18,6 +18,7 @@ class SecurityPage extends StatefulWidget {
 class _SecurityPageState extends State<SecurityPage> {
   List<AppInfo>? _aplikasi;
   bool _memuat = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -26,17 +27,40 @@ class _SecurityPageState extends State<SecurityPage> {
   }
 
   Future<void> _muat() async {
-    final aplikasi = await DeviceNative.installedApps();
-    if (!mounted) return;
-    aplikasi.sort(
-      (a, b) => b.dangerousPermissionCount.compareTo(
-        a.dangerousPermissionCount,
-      ),
-    );
-    setState(() {
-      _aplikasi = aplikasi;
-      _memuat = false;
-    });
+    // Batas 30 detik: bila pembacaan sistem macet, layar menampilkan
+    // status galat dengan tombol "Coba lagi", bukan spinner selamanya.
+    try {
+      await _muatDalam().timeout(const Duration(seconds: 30));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
+  }
+
+  Future<void> _muatDalam() async {
+    try {
+      final aplikasi = await DeviceNative.installedApps();
+      if (!mounted) return;
+      aplikasi.sort(
+        (a, b) => b.dangerousPermissionCount.compareTo(
+          a.dangerousPermissionCount,
+        ),
+      );
+      setState(() {
+        _aplikasi = aplikasi;
+        _memuat = false;
+        _error = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
   }
 
   @override
@@ -48,8 +72,21 @@ class _SecurityPageState extends State<SecurityPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Dokter Keamanan')),
       body: _memuat
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
-          : aplikasi == null || aplikasi.isEmpty
+          ? const LoadingState(label: 'Memuat daftar aplikasi...')
+          : _error
+              ? ErrorState(
+                  title: 'Daftar aplikasi tidak bisa dibaca',
+                  message: 'Perangkat tidak memberikan daftar aplikasi '
+                      'saat ini. Coba muat ulang.',
+                  onRetry: () {
+                    setState(() {
+                      _memuat = true;
+                      _error = false;
+                    });
+                    _muat();
+                  },
+                )
+              : aplikasi == null || aplikasi.isEmpty
               ? const EmptyState(
                   icon: Icons.security,
                   title: 'Daftar aplikasi tidak tersedia',

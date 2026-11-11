@@ -29,7 +29,7 @@ Future<void> _boot() async {
     debugPrint('[startup] $error (lanjut mode lokal)');
   }
   runApp(DokterHpApp(database: database));
-  // Sinkronisasi riwayat di background — tidak menahan tampilan dan
+  // Sinkronisasi riwayat di background, tidak menahan tampilan dan
   // tidak pernah menggagalkan startup.
   unawaited(_syncRiwayat(database));
 }
@@ -45,7 +45,7 @@ Future<void> _syncRiwayat(AppDatabase database) async {
 
 /// Inisialisasi startup. Mengembalikan pesan (Bahasa Indonesia) bila
 /// Supabase gagal dihubungkan, null bila sukses atau bila aplikasi
-/// berjalan mode lokal. Pesan ini HANYA dicatat ke log — kegagalan
+/// berjalan mode lokal. Pesan ini HANYA dicatat ke log, kegagalan
 /// Supabase tidak pernah memblokir aplikasi.
 Future<String?> _initApp() async {
   if (_supabaseReady) return null;

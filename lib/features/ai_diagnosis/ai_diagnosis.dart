@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dokter_hp/core/app_config.dart';
+import 'package:dokter_hp/core/theme.dart';
 
 /// Layanan diagnosis AI via Supabase Edge Function `ai-diagnose`.
 ///
-/// Kunci Gemini TIDAK PERNAH ada di APK — kunci hanya tersimpan sebagai
+/// Kunci Gemini TIDAK PERNAH ada di APK, kunci hanya tersimpan sebagai
 /// secret di sisi server Supabase. Bila Supabase belum terkonfigurasi,
 /// layanan mengembalikan pesan jujur dan fitur tidak dipalsukan.
 class AiDiagnosisService {
@@ -19,9 +20,14 @@ class AiDiagnosisService {
     try {
       final respons = await Supabase.instance.client.functions.invoke(
         AppConfig.aiDiagnoseFunction,
+        // Nama field WAJIB cocok dengan Edge Function ai-diagnose
+        // (supabase/functions/ai-diagnose/index.ts): `gejala` dan
+        // `hasil_pemeriksaan`. Sebelum perbaikan ini Dart mengirim
+        // `keluhan`/`data_perangkat` sehingga function selalu menolak
+        // dengan 400 "Kolom 'gejala' wajib diisi".
         body: {
-          'keluhan': keluhan,
-          'data_perangkat': dataPerangkat,
+          'gejala': keluhan,
+          'hasil_pemeriksaan': dataPerangkat,
         },
       );
       final data = respons.data;
@@ -31,10 +37,10 @@ class AiDiagnosisService {
       }
       if (data is String && data.isNotEmpty) return data;
       return 'Server tidak mengembalikan jawaban. Coba lagi.';
-    } on FunctionException catch (e) {
-      return 'Diagnosis AI gagal: ${e.details ?? e.reasonPhrase ?? e.status}';
-    } catch (e) {
-      return 'Diagnosis AI gagal: $e';
+    } on FunctionException catch (_) {
+      return 'Diagnosis AI gagal. Coba lagi.';
+    } catch (_) {
+      return 'Diagnosis AI gagal. Coba lagi.';
     }
   }
 }
@@ -53,6 +59,11 @@ class _AiDiagnosisPageState extends State<AiDiagnosisPage> {
   final _service = AiDiagnosisService();
   String? _jawaban;
   bool _memuat = false;
+
+  bool get _jawabanGagal =>
+      _jawaban != null &&
+      (_jawaban!.startsWith('Diagnosis AI gagal') ||
+          _jawaban!.startsWith('Server tidak mengembalikan jawaban'));
 
   @override
   void dispose() {
@@ -130,11 +141,26 @@ class _AiDiagnosisPageState extends State<AiDiagnosisPage> {
                 child: Text(_jawaban!),
               ),
             ),
+            if (_jawabanGagal) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _memuat ? null : _kirim,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba lagi'),
+              ),
+            ],
             const SizedBox(height: 8),
             const Text(
               'Jawaban AI adalah saran, bukan vonis pasti. Cocokkan dengan '
               'hasil ukur di Dokter WiFi dan dokter lainnya.',
-              style: TextStyle(color: Colors.black54),
+              style: TextStyle(color: AppTheme.mutedGrey),
+            ),
+          ],
+          if (_jawaban == null && !_memuat) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Tulis keluhan di atas, lalu ketuk "Minta diagnosis".',
+              style: TextStyle(color: AppTheme.mutedGrey),
             ),
           ],
         ],

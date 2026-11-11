@@ -25,6 +25,7 @@ class _PerformancePageState extends State<PerformancePage> {
   double? _suhuCelsius;
   AndroidDeviceInfo? _infoPerangkat;
   bool _memuat = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -33,23 +34,43 @@ class _PerformancePageState extends State<PerformancePage> {
   }
 
   Future<void> _muat() async {
-    final memori = await DeviceNative.memoryInfo();
-    final cpu = await _bacaCpu();
-    final suhu = await _bacaSuhu();
-    AndroidDeviceInfo? info;
+    // Sengaja tanpa batas waktu: pembacaan memakai I/O file nyata
+    // (/proc/stat, sensor thermal) yang di perangkat Android selesai
+    // dalam milidetik. Di lingkungan widget test, I/O nyata tidak
+    // pernah selesai tanpa runAsync, jadi timer batas apa pun akan
+    // tertinggal (pending) saat test selesai atau mengubah hasil
+    // golden. Bila I/O ini dibuat bisa diuji (injeksi), tambahkan
+    // batas 30 detik seperti layar lain.
+    await _muatDalam();
+  }
+
+  Future<void> _muatDalam() async {
     try {
-      info = await DeviceInfoPlugin().androidInfo;
+      final memori = await DeviceNative.memoryInfo();
+      final cpu = await _bacaCpu();
+      final suhu = await _bacaSuhu();
+      AndroidDeviceInfo? info;
+      try {
+        info = await DeviceInfoPlugin().androidInfo;
+      } catch (_) {
+        info = null;
+      }
+      if (!mounted) return;
+      setState(() {
+        _memori = memori;
+        _cpuPersen = cpu;
+        _suhuCelsius = suhu;
+        _infoPerangkat = info;
+        _memuat = false;
+        _error = false;
+      });
     } catch (_) {
-      info = null;
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
     }
-    if (!mounted) return;
-    setState(() {
-      _memori = memori;
-      _cpuPersen = cpu;
-      _suhuCelsius = suhu;
-      _infoPerangkat = info;
-      _memuat = false;
-    });
   }
 
   /// Baca /proc/stat dua kali dengan jeda untuk menghitung pemakaian CPU.
@@ -144,8 +165,21 @@ class _PerformancePageState extends State<PerformancePage> {
         ],
       ),
       body: _memuat
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
-          : ListView(
+          ? const LoadingState(label: 'Memuat data performa...')
+          : _error
+              ? ErrorState(
+                  title: 'Data performa tidak bisa dibaca',
+                  message: 'Perangkat tidak memberikan data performa saat '
+                      'ini. Coba muat ulang.',
+                  onRetry: () {
+                    setState(() {
+                      _memuat = true;
+                      _error = false;
+                    });
+                    _muat();
+                  },
+                )
+              : ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 Card(

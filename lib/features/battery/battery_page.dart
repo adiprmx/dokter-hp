@@ -8,7 +8,7 @@ import 'package:dokter_hp/core/widgets/common_widgets.dart';
 ///
 /// Menampilkan level, status, dan mode hemat daya dari Battery API.
 /// Daftar aplikasi boros hanya ditampilkan bila datanya tersedia dari
-/// sistem — Android tidak membuka data pemakaian baterai per aplikasi
+/// sistem, Android tidak membuka data pemakaian baterai per aplikasi
 /// untuk aplikasi pihak ketiga, jadi bagian itu jujur menampilkan
 /// kondisi "tidak tersedia", bukan daftar contoh.
 class BatteryPage extends StatefulWidget {
@@ -22,7 +22,7 @@ class _BatteryPageState extends State<BatteryPage> {
   int? _level;
   BatteryState? _state;
   bool? _hematDaya;
-  String? _error;
+  bool _error = false;
 
   @override
   void initState() {
@@ -31,11 +31,22 @@ class _BatteryPageState extends State<BatteryPage> {
   }
 
   Future<void> _muat() async {
+    // Batas 30 detik: bila pembacaan baterai macet, layar menampilkan
+    // status galat dengan tombol "Coba lagi", bukan spinner selamanya.
+    try {
+      await _muatDalam().timeout(const Duration(seconds: 30));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = true);
+    }
+  }
+
+  Future<void> _muatDalam() async {
     final baterai = Battery();
     try {
       final level = await baterai.batteryLevel;
       // Stream status baterai bisa tidak mengirim event bila tidak ada
-      // perubahan — batasi 5 detik agar layar tidak macet.
+      // perubahan, batasi 5 detik agar layar tidak macet.
       BatteryState? state;
       try {
         state = await baterai.onBatteryStateChanged.first.timeout(
@@ -50,10 +61,11 @@ class _BatteryPageState extends State<BatteryPage> {
         _level = level;
         _state = state;
         _hematDaya = hemat;
+        _error = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Data baterai tidak bisa dibaca: $e');
+      setState(() => _error = true);
     }
   }
 
@@ -73,7 +85,9 @@ class _BatteryPageState extends State<BatteryPage> {
   }
 
   /// Estimasi kasar waktu pakai dari level saat ini.
-  /// Label jelas sebagai perkiraan, bukan janji.
+  /// Label jelas sebagai perkiraan, bukan janji. Angka "10% per jam"
+  /// adalah asumsi kasar pemakaian rata-rata, bukan hasil ukur, jadi
+  /// tidak ditampilkan ke pengguna sebagai angka pasti.
   String _estimasiWaktuPakai() {
     if (_level == null || _state == BatteryState.charging) {
       return 'Tidak tersedia saat mengisi daya.';
@@ -82,8 +96,8 @@ class _BatteryPageState extends State<BatteryPage> {
     final jam = _level! / 10;
     final jamBulat = jam.floor();
     final menit = ((jam - jamBulat) * 60).round();
-    return 'Perkiraan sekitar $jamBulat jam $menit menit '
-        '(asumsi pemakaian rata-rata 10% per jam — bukan pengukuran pasti).';
+    return 'Perkiraan kasar sekitar $jamBulat jam $menit menit, '
+        'bukan hasil ukur.';
   }
 
   @override
@@ -98,7 +112,7 @@ class _BatteryPageState extends State<BatteryPage> {
             onPressed: () {
               setState(() {
                 _level = null;
-                _error = null;
+                _error = false;
               });
               _muat();
             },
@@ -108,10 +122,21 @@ class _BatteryPageState extends State<BatteryPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (_error != null)
-            Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(_error!)))
+          if (_error)
+            ErrorState(
+              title: 'Data baterai tidak bisa dibaca',
+              message: 'Perangkat tidak memberikan data baterai saat ini. '
+                  'Coba muat ulang.',
+              onRetry: () {
+                setState(() {
+                  _level = null;
+                  _error = false;
+                });
+                _muat();
+              },
+            )
           else if (_level == null)
-            const Center(child: CircularProgressIndicator(color: Colors.black))
+            const LoadingState(label: 'Memuat data baterai...')
           else
             Card(
               child: Padding(
@@ -153,15 +178,15 @@ class _BatteryPageState extends State<BatteryPage> {
               ),
             ),
           const SizedBox(height: 16),
-          const Card(
+          Card(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Aplikasi boros baterai',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   SizedBox(height: 8),
                   Text(
@@ -176,15 +201,15 @@ class _BatteryPageState extends State<BatteryPage> {
             ),
           ),
           const SizedBox(height: 16),
-          const Card(
+          Card(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Tips merawat baterai',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   SizedBox(height: 8),
                   Text(

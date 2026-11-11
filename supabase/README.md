@@ -79,16 +79,24 @@ supabase secrets set GEMINI_API_KEY=<kunci-api-gemini>
 supabase functions deploy ai-diagnose
 ```
 
-Untuk `fcm-notify` (opsional, hanya bila notifikasi push dipakai):
+Untuk `fcm-notify` (opsional, hanya bila notifikasi push dipakai,
+dan HANYA oleh admin — function ini **nonaktif secara default**):
 
 ```bash
+supabase secrets set FCM_NOTIFY_ALLOWED_USER_IDS=<id-pengguna-admin>
 supabase secrets set FCM_PROJECT_ID=<id-proyek-firebase>
 supabase secrets set FCM_ACCESS_TOKEN=<token-akses-oauth-2-0>
 supabase functions deploy fcm-notify
 ```
 
-Token akses FCM berumur pendek dan harus diperbarui secara berkala.
-Lihat catatan setup lengkap di `functions/fcm-notify/index.ts`.
+Tanpa secret `FCM_NOTIFY_ALLOWED_USER_IDS`, function menolak semua
+panggilan dengan 503. Hanya pengguna yang id-nya tercantum di
+allowlist (dipisah koma bila lebih dari satu) yang boleh mengirim
+push; pengguna login lain ditolak dengan 403. Id pengguna dilihat di
+dashboard Supabase (Authentication > Users). Token akses FCM berumur
+pendek dan harus diperbarui secara berkala. Lihat keputusan keamanan
+lengkap di `functions/fcm-notify/index.ts` dan di bagian
+`fcm-notify` di bawah.
 
 ### 5. Atur GitHub secrets di repositori
 
@@ -153,7 +161,7 @@ Catatan:
   pada dokumentasi resmi Google AI saat setup, karena Google dapat
   mengubah nama model dan versi API.
 
-### `fcm-notify` (template)
+### `fcm-notify` (template, nonaktif secara default)
 
 - Endpoint: `POST /functions/v1/fcm-notify`
 - Header wajib: `Authorization: Bearer <token pengguna>`
@@ -171,6 +179,23 @@ Catatan:
 - Membutuhkan secret `FCM_PROJECT_ID` dan `FCM_ACCESS_TOKEN`.
 - Bila secret belum diatur, function mengembalikan galat 500 dengan
   pesan setup dan tidak mengirim apa pun.
+
+**Keputusan keamanan (temuan QA S-3, 11 Nov 2026):** function ini
+adalah relay push ke token perangkat mana pun, jadi tidak boleh
+dipakai sembarang pengguna login. Karena itu function **nonaktif
+secara default**: tanpa secret `FCM_NOTIFY_ALLOWED_USER_IDS`,
+semua panggilan ditolak dengan 503. Bila allowlist sudah diatur,
+function membaca klaim `sub` (id pengguna) dari JWT dan hanya
+mengizinkan id yang tercantum di allowlist (biasanya akun admin);
+pengguna lain ditolak dengan 403, token yang tidak valid ditolak
+dengan 401. Model yang dipilih adalah relay khusus admin — yang
+paling aman dan paling sederhana — bukan pengiriman mandiri per
+pengguna, karena pengiriman mandiri membutuhkan tabel pemetaan
+token perangkat per pengguna yang belum dibangun, dan aplikasi
+v1.0.0 tidak memakai function ini sama sekali. Jangan pernah
+men-deploy function ini dengan `verify_jwt = false`: gateway
+adalah yang memverifikasi tanda tangan JWT sebelum request sampai
+ke function.
 
 Kedua function dikonfigurasi dengan `verify_jwt = true` di
 `config.toml`, sehingga pemanggil wajib menyertakan token pengguna

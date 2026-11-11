@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dokter_hp/core/app_config.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/core/health_score.dart';
 import 'package:dokter_hp/core/widgets/common_widgets.dart';
 import 'package:dokter_hp/data/local/app_database.dart';
@@ -116,7 +117,13 @@ class _DashboardView extends StatelessWidget {
                       if (state.status == DiagnosisStatus.gagal)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: Text(state.pesan),
+                          child: ErrorState(
+                            title: 'Diagnosis gagal',
+                            message: state.pesan,
+                            onRetry: () => context
+                                .read<DashboardCubit>()
+                                .jalankanDiagnosis(),
+                          ),
                         ),
                       const SizedBox(height: 8),
                       FilledButton.icon(
@@ -158,7 +165,8 @@ class _DashboardView extends StatelessWidget {
               DoctorCard(
                 icon: Icons.storage,
                 title: 'Dokter Penyimpanan',
-                description: 'Analisis ruang kosong dan bersih cache aman.',
+                description: 'Lihat ruang kosong dan bersihkan cache '
+                    'dengan aman.',
                 onTap: () => _buka(context, const StoragePage()),
               ),
               DoctorCard(
@@ -170,7 +178,7 @@ class _DashboardView extends StatelessWidget {
               DoctorCard(
                 icon: Icons.security,
                 title: 'Dokter Keamanan',
-                description: 'Izin aplikasi dan aplikasi mencurigakan.',
+                description: 'Izin aplikasi yang perlu ditinjau.',
                 onTap: () => _buka(context, const SecurityPage()),
               ),
               DoctorCard(
@@ -185,7 +193,7 @@ class _DashboardView extends StatelessWidget {
                 child: Text(
                   'Dokter HP v${AppConfig.appVersion}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.black45,
+                        color: AppTheme.mutedGrey,
                       ),
                   textAlign: TextAlign.center,
                 ),
@@ -201,8 +209,11 @@ class _DashboardView extends StatelessWidget {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.check_circle_outline),
-                    title: Text('Skor ${item.score} — ${item.category}'),
-                    subtitle: Text(item.createdAt.toLocal().toString()),
+                    title: Text(
+                      'Skor ${item.score} '
+                      '(${labelKategori(item.category)})',
+                    ),
+                    subtitle: Text(formatTanggalWaktu(item.createdAt)),
                   ),
               ],
             ],

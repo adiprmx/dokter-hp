@@ -3,7 +3,7 @@
 Aplikasi Android untuk mendeteksi dan memperbaiki masalah HP: WiFi lemot,
 baterai boros, penyimpanan penuh, performa berat, dan keamanan.
 
-Aplikasi berjalan penuh dalam **mode lokal** — semua diagnosis memakai data
+Aplikasi berjalan penuh dalam **mode lokal**. Semua diagnosis memakai data
 nyata dari perangkat dan tersimpan di database lokal. Bila server Supabase
 dikonfigurasi, tersedia tambahan: login Google, Diagnosis AI, dan
 sinkronisasi riwayat.
@@ -38,7 +38,7 @@ sinkronisasi riwayat.
 
 - Semua angka yang tampil adalah data nyata dari perangkat.
 - Bila data tidak tersedia, layar menampilkan "tidak tersedia" atau
-  "Belum ada data pemeriksaan" — bukan angka contoh.
+  "Belum ada data pemeriksaan", bukan angka contoh.
 - Android membatasi aplikasi pihak ketiga: aplikasi tidak bisa menyambung
   ulang WiFi, melupakan jaringan, mengganti DNS, menutup aplikasi lain,
   atau membaca pemakaian baterai per aplikasi secara langsung. Semua
@@ -80,7 +80,7 @@ mengaktifkan login Google, Diagnosis AI, dan sinkronisasi riwayat:
 2. Di proyek Supabase, buat Edge Function `ai-diagnose` yang menerima
    `{ "keluhan": string, "data_perangkat": object }` dan mengembalikan
    `{ "jawaban": string }`. Simpan kunci Gemini sebagai secret di
-   Supabase (Dashboard > Edge Functions > Secrets) — jangan pernah
+   Supabase (Dashboard > Edge Functions > Secrets). Jangan pernah
    menulis kunci di kode aplikasi.
 3. Di repositori GitHub, buka **Settings > Secrets and variables >
    Actions**.
@@ -89,7 +89,7 @@ mengaktifkan login Google, Diagnosis AI, dan sinkronisasi riwayat:
 5. Daftarkan Redirect URL `dokterhp://login-callback` di Supabase
    (Authentication > URL Configuration) agar login Google kembali ke
    aplikasi.
-6. Push ke branch `main` — workflow GitHub Actions membangun APK dengan
+6. Push ke branch `main`. Workflow GitHub Actions membangun APK dengan
    secret tersebut. Bila secret kosong, build tetap jalan dalam mode
    lokal (hanya peringatan, bukan gagal).
 
@@ -131,7 +131,7 @@ local_auth, flutter_secure_storage. Tanpa payment gateway.
 | `flutter pub get` lama | Unduhan paket pertama kali; tunggu sampai selesai, jangan batalkan |
 | Build gagal karena `local.properties` | Jalankan `flutter build apk` dari root proyek; file dibuat otomatis |
 | SSID tampil "tidak tersedia" | Izin lokasi belum diberikan (dibutuhkan Android 10+ untuk SSID) |
-| Diagnosis AI belum tersedia | Secret Supabase belum diisi — aplikasi berjalan mode lokal |
+| Diagnosis AI belum tersedia | Secret Supabase belum diisi, aplikasi berjalan mode lokal |
 | Tes unduh gagal | Periksa sambungan internet; server uji (Cloudflare/OVH) mungkin tidak terjangkau |
 | Build APK lokal gagal TLS (`PKIX path validation failed`) | Egress proxy memakai CA sendiri yang tidak dikenal JDK. Buat truststore dari CA egress (`/run/hatch/egress-tls/hatch-egress-ca.pem`) dan jalankan build dengan `GRADLE_OPTS="-Djavax.net.ssl.trustStore=... -Djavax.net.ssl.trustStorePassword=..."`. Di GitHub Actions masalah ini tidak ada. |
 | Build lokal macet di Gradle daemon | Di VM ini koneksi CLI ke daemon Gradle tidak tersambung (daemon jalan tetapi tidak menerima build). `org.gradle.daemon=false` sudah diatur di `android/gradle.properties`; bila tetap macet, andalkan build GitHub Actions. |

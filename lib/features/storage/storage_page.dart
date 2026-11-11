@@ -6,7 +6,7 @@ import 'package:dokter_hp/core/widgets/common_widgets.dart';
 ///
 /// Membaca total dan ruang kosong lewat StatFs Android, serta ukuran
 /// cache aplikasi sendiri. Pembersihan hanya menghapus cache aplikasi
-/// ini — tidak pernah menyentuh foto, chat, atau file pengguna — dan
+/// ini, tidak pernah menyentuh foto, chat, atau file pengguna, dan
 /// selalu meminta konfirmasi dulu.
 class StoragePage extends StatefulWidget {
   const StoragePage({super.key});
@@ -20,6 +20,7 @@ class _StoragePageState extends State<StoragePage> {
   int? _cacheBytes;
   bool _memuat = true;
   bool _membersihkan = false;
+  bool _error = false;
 
   @override
   void initState() {
@@ -28,14 +29,37 @@ class _StoragePageState extends State<StoragePage> {
   }
 
   Future<void> _muat() async {
-    final penyimpanan = await DeviceNative.storageInfo();
-    final cache = await DeviceNative.cacheSizeBytes();
-    if (!mounted) return;
-    setState(() {
-      _penyimpanan = penyimpanan;
-      _cacheBytes = cache;
-      _memuat = false;
-    });
+    // Batas 30 detik: bila pembacaan sistem macet, layar menampilkan
+    // status galat dengan tombol "Coba lagi", bukan spinner selamanya.
+    try {
+      await _muatDalam().timeout(const Duration(seconds: 30));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
+  }
+
+  Future<void> _muatDalam() async {
+    try {
+      final penyimpanan = await DeviceNative.storageInfo();
+      final cache = await DeviceNative.cacheSizeBytes();
+      if (!mounted) return;
+      setState(() {
+        _penyimpanan = penyimpanan;
+        _cacheBytes = cache;
+        _memuat = false;
+        _error = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
   }
 
   String _formatBytes(int bytes) {
@@ -101,8 +125,21 @@ class _StoragePageState extends State<StoragePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Dokter Penyimpanan')),
       body: _memuat
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
-          : ListView(
+          ? const LoadingState(label: 'Memuat data penyimpanan...')
+          : _error
+              ? ErrorState(
+                  title: 'Data penyimpanan tidak bisa dibaca',
+                  message: 'Perangkat tidak memberikan info penyimpanan '
+                      'saat ini. Coba muat ulang.',
+                  onRetry: () {
+                    setState(() {
+                      _memuat = true;
+                      _error = false;
+                    });
+                    _muat();
+                  },
+                )
+              : ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 if (penyimpanan == null)

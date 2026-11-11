@@ -6,11 +6,11 @@ import 'package:local_auth/local_auth.dart';
 
 /// Layanan kunci aplikasi: PIN lokal dan biometrik.
 ///
-/// PIN TIDAK PERNAH disimpan plaintext — yang disimpan hanya hash
+/// PIN TIDAK PERNAH disimpan plaintext, yang disimpan hanya hash
 /// SHA-256 dengan salt tetap per perangkat. Biometrik memakai
 /// LocalAuthentication sistem dan tidak menyimpan data biometrik apa pun.
 class PinService {
-  PinService({FlutterSecureStorage? storage})
+  const PinService({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
@@ -42,17 +42,34 @@ class PinService {
   }
 
   /// Periksa PIN yang dimasukkan.
+  ///
+  /// Bila penyimpanan aman tidak bisa dibaca (misalnya di lingkungan
+  /// test tanpa plugin), kembalikan false: PIN tidak pernah dianggap
+  /// cocok bila tidak bisa diverifikasi.
   Future<bool> periksaPin(String pin) async {
-    final hashTersimpan = await _storage.read(key: _kunciHashPin);
-    final salt = await _storage.read(key: _kunciSalt);
-    if (hashTersimpan == null || salt == null) return false;
-    return _hashPin(pin, salt) == hashTersimpan;
+    try {
+      final hashTersimpan = await _storage.read(key: _kunciHashPin);
+      final salt = await _storage.read(key: _kunciSalt);
+      if (hashTersimpan == null || salt == null) return false;
+      return _hashPin(pin, salt) == hashTersimpan;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Apakah PIN sudah diatur.
+  ///
+  /// Bila penyimpanan aman tidak bisa dibaca, kembalikan false agar
+  /// aplikasi tidak terkunci oleh galat teknis (fail-open untuk
+  /// keterbacaan, bukan fail-closed yang mengunci pengguna keluar
+  /// dari akunnya sendiri tanpa jalan pemulihan).
   Future<bool> get pinSudahDiatur async {
-    final hash = await _storage.read(key: _kunciHashPin);
-    return hash != null && hash.isNotEmpty;
+    try {
+      final hash = await _storage.read(key: _kunciHashPin);
+      return hash != null && hash.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Hapus PIN (dan matikan biometrik).
@@ -91,8 +108,12 @@ class PinService {
   }
 
   Future<bool> get biometrikAktif async {
-    final nilai = await _storage.read(key: _kunciBiometrik);
-    return nilai == 'true';
+    try {
+      final nilai = await _storage.read(key: _kunciBiometrik);
+      return nilai == 'true';
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> aturBiometrik(bool aktif) async {

@@ -43,7 +43,7 @@ class DashboardState {
 
 /// Cubit dashboard: menjalankan diagnosis satu ketuk dari data nyata.
 ///
-/// Setiap komponen yang datanya tidak tersedia dilewati — skor dihitung
+/// Setiap komponen yang datanya tidak tersedia dilewati, skor dihitung
 /// dari komponen yang ada, dan layar menampilkan kondisi jujur.
 class DashboardCubit extends Cubit<DashboardState> {
   DashboardCubit({required AppDatabase database})
@@ -57,7 +57,7 @@ class DashboardCubit extends Cubit<DashboardState> {
       final riwayat = await _database.healthChecksAktif();
       emit(state.copyWith(riwayatTerakhir: riwayat.take(3).toList()));
     } catch (_) {
-      // Riwayat gagal dimuat — dashboard tetap tampil tanpa riwayat.
+      // Riwayat gagal dimuat, dashboard tetap tampil tanpa riwayat.
     }
   }
 
@@ -126,7 +126,7 @@ class DashboardCubit extends Cubit<DashboardState> {
       emit(
         state.copyWith(
           status: DiagnosisStatus.gagal,
-          pesan: 'Diagnosis gagal: $e',
+          pesan: 'Diagnosis gagal. Coba lagi.',
         ),
       );
     }

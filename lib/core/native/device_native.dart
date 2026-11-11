@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 /// Jembatan ke API Android yang tidak disediakan paket publik.
 ///
-/// Semua metode mengembalikan null bila tidak tersedia — pemanggil wajib
+/// Semua metode mengembalikan null bila tidak tersedia, pemanggil wajib
 /// menampilkan kondisi jujur ("tidak tersedia"), bukan angka palsu.
 class DeviceNative {
   DeviceNative._();

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dokter_hp/core/app_config.dart';
+import 'package:dokter_hp/core/theme.dart';
+import 'package:dokter_hp/core/widgets/common_widgets.dart';
 import 'package:dokter_hp/features/auth/pin_service.dart';
 
 /// Layar Akun dan Keamanan.
@@ -23,6 +25,7 @@ class _AuthPageState extends State<AuthPage> {
   bool _biometrikTersedia = false;
   bool _biometrikAktif = false;
   bool _memuat = true;
+  bool _error = false;
 
   @override
   void initState() {
@@ -37,16 +40,40 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<void> _muat() async {
-    final pin = await _pinService.pinSudahDiatur;
-    final tersedia = await _pinService.biometrikTersedia;
-    final aktif = await _pinService.biometrikAktif;
-    if (!mounted) return;
-    setState(() {
-      _pinSudahDiatur = pin;
-      _biometrikTersedia = tersedia;
-      _biometrikAktif = aktif;
-      _memuat = false;
-    });
+    // Batas 30 detik: bila pembacaan penyimpanan aman macet, layar
+    // menampilkan status galat dengan tombol "Coba lagi", bukan
+    // spinner selamanya.
+    try {
+      await _muatDalam().timeout(const Duration(seconds: 30));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
+  }
+
+  Future<void> _muatDalam() async {
+    try {
+      final pin = await _pinService.pinSudahDiatur;
+      final tersedia = await _pinService.biometrikTersedia;
+      final aktif = await _pinService.biometrikAktif;
+      if (!mounted) return;
+      setState(() {
+        _pinSudahDiatur = pin;
+        _biometrikTersedia = tersedia;
+        _biometrikAktif = aktif;
+        _memuat = false;
+        _error = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
   }
 
   User? get _pengguna {
@@ -68,10 +95,10 @@ class _AuthPageState extends State<AuthPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lanjutkan masuk lewat browser.')),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Masuk Google gagal: $e')),
+        const SnackBar(content: Text('Masuk Google gagal. Coba lagi.')),
       );
     }
   }
@@ -90,7 +117,7 @@ class _AuthPageState extends State<AuthPage> {
       SnackBar(
         content: Text(
           berhasil
-              ? 'PIN berhasil disimpan (tersimpan sebagai hash, bukan teks).'
+              ? 'PIN berhasil disimpan.'
               : 'PIN tidak valid. Gunakan 4-8 digit angka.',
         ),
       ),
@@ -121,8 +148,21 @@ class _AuthPageState extends State<AuthPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Akun dan keamanan')),
       body: _memuat
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
-          : ListView(
+          ? const LoadingState(label: 'Memuat pengaturan keamanan...')
+          : _error
+              ? ErrorState(
+                  title: 'Pengaturan tidak bisa dibaca',
+                  message: 'Pengaturan keamanan di HP ini tidak bisa '
+                      'dibaca saat ini. Coba muat ulang.',
+                  onRetry: () {
+                    setState(() {
+                      _memuat = true;
+                      _error = false;
+                    });
+                    _muat();
+                  },
+                )
+              : ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 Card(
@@ -197,9 +237,23 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'PIN disimpan sebagai hash SHA-256 di penyimpanan '
-                          'aman perangkat. PIN asli tidak pernah disimpan.',
-                          style: TextStyle(color: Colors.black54),
+                          'PIN disimpan dalam bentuk yang tidak bisa dibaca '
+                          'di HP ini. PIN asli tidak pernah disimpan.',
+                          style: TextStyle(color: AppTheme.mutedGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _pinSudahDiatur
+                              ? 'PIN yang sudah diatur akan diminta setiap '
+                                  'kali aplikasi dibuka. Bila PIN lupa dan '
+                                  'biometrik tidak aktif, satu-satunya jalan '
+                                  'pemulihan adalah menghapus data aplikasi '
+                                  'lewat Pengaturan Android (riwayat yang '
+                                  'sudah tersinkron ke server tetap aman).'
+                              : 'PIN belum diatur, jadi aplikasi langsung '
+                                  'terbuka. Atur PIN di sini bila ingin '
+                                  'aplikasi terkunci setiap kali dibuka.',
+                          style: const TextStyle(color: AppTheme.mutedGrey),
                         ),
                         if (_pinSudahDiatur)
                           TextButton(

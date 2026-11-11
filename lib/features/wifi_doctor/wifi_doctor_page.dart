@@ -3,12 +3,13 @@ import 'package:dokter_hp/data/local/app_database.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:dokter_hp/core/health_score.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/core/native/device_native.dart';
 import 'package:dokter_hp/core/widgets/common_widgets.dart';
 import 'package:dokter_hp/features/wifi_doctor/wifi_cubit.dart';
 import 'package:dokter_hp/features/wifi_doctor/wifi_service.dart';
 
-/// Layar Dokter WiFi — fitur utama.
+/// Layar Dokter WiFi, fitur utama.
 ///
 /// Menampilkan hasil ukur nyata (SSID, IP, DNS, sinyal, kecepatan unduh,
 /// latensi) dan rekomendasi. Semua tindakan perbaikan yang dibatasi
@@ -82,11 +83,11 @@ class _WifiDoctorView extends StatelessWidget {
               ],
               if (state.status == WifiStatus.gagal) ...[
                 const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(state.pesan),
-                  ),
+                ErrorState(
+                  title: 'Pemeriksaan WiFi gagal',
+                  message: state.pesan,
+                  onRetry: () =>
+                      context.read<WifiCubit>().jalankanPemeriksaan(),
                 ),
               ],
               if (state.hasil != null) ...[
@@ -225,7 +226,7 @@ class _HasilCard extends StatelessWidget {
               'pengaturan router (mis. ZTE F660: masuk ke alamat admin '
               'router, menu WLAN, ubah Channel) biasanya memperbaiki '
               'kecepatan.',
-              style: TextStyle(color: Colors.black54),
+              style: TextStyle(color: AppTheme.mutedGrey),
             ),
           ],
         ),
@@ -298,7 +299,7 @@ class _PerbaikanCard extends StatelessWidget {
               'Android membatasi aplikasi pihak ketiga: aplikasi tidak bisa '
               'menyambung ulang WiFi, melupakan jaringan, atau mengganti '
               'DNS secara langsung. Langkah di bawah ini memakai pengaturan '
-              'sistem — bukan perbaikan pura-pura.',
+              'sistem.',
             ),
             const SizedBox(height: 12),
             ListTile(

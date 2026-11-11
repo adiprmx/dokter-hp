@@ -122,7 +122,7 @@ class WifiDoctorService {
           .getWifiGatewayIP()
           .timeout(const Duration(seconds: 5), onTimeout: () => null);
     } catch (_) {
-      // API jaringan tidak tersedia — nilai tetap null dan ditampilkan
+      // API jaringan tidak tersedia, nilai tetap null dan ditampilkan
       // sebagai "tidak tersedia", bukan ditebak.
     }
     final dns = await DeviceNative.dnsServers();
@@ -166,8 +166,8 @@ class WifiDoctorService {
     return null;
   }
 
-  /// Latensi HTTP (round-trip request kecil). Ini BUKAN ping ICMP —
-  /// aplikasi pihak ketiga tidak bisa mengirim ICMP mentah di Android —
+  /// Latensi HTTP (round-trip request kecil). Ini BUKAN ping ICMP ,
+  /// aplikasi pihak ketiga tidak bisa mengirim ICMP mentah di Android ,
   /// dan labelnya di layar menyebut "latensi HTTP" secara jujur.
   Future<int?> measureLatency() async {
     try {

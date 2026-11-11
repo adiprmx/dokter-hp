@@ -21,6 +21,7 @@ class _HistoryPageState extends State<HistoryPage> {
   List<WifiReport>? _wifi;
   bool _memuat = true;
   bool _membagikan = false;
+  bool _error = false;
 
   @override
   void initState() {
@@ -31,24 +32,47 @@ class _HistoryPageState extends State<HistoryPage> {
   AppDatabase get _db => widget.database;
 
   Future<void> _muat() async {
-    final riwayat = await _db.healthChecksAktif();
-    final wifi = await _db.wifiReportsAktif();
-    if (!mounted) return;
-    setState(() {
-      _riwayat = riwayat;
-      _wifi = wifi;
-      _memuat = false;
-    });
+    // Batas 30 detik: bila pembacaan database macet, layar menampilkan
+    // status galat dengan tombol "Coba lagi", bukan spinner selamanya.
+    try {
+      await _muatDalam().timeout(const Duration(seconds: 30));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
+  }
+
+  Future<void> _muatDalam() async {
+    try {
+      final riwayat = await _db.healthChecksAktif();
+      final wifi = await _db.wifiReportsAktif();
+      if (!mounted) return;
+      setState(() {
+        _riwayat = riwayat;
+        _wifi = wifi;
+        _memuat = false;
+        _error = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _memuat = false;
+        _error = true;
+      });
+    }
   }
 
   Future<void> _bagikan() async {
     setState(() => _membagikan = true);
     try {
       await PdfReportService(database: _db).bagikanLaporan();
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Laporan gagal dibuat: $e')),
+        const SnackBar(content: Text('Laporan gagal dibuat. Coba lagi.')),
       );
     } finally {
       if (mounted) setState(() => _membagikan = false);
@@ -80,8 +104,21 @@ class _HistoryPageState extends State<HistoryPage> {
         ],
       ),
       body: _memuat
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
-          : riwayat.isEmpty && wifi.isEmpty
+          ? const LoadingState(label: 'Memuat riwayat...')
+          : _error
+              ? ErrorState(
+                  title: 'Riwayat tidak bisa dibaca',
+                  message: 'Data riwayat di perangkat ini tidak bisa '
+                      'dibaca saat ini. Coba muat ulang.',
+                  onRetry: () {
+                    setState(() {
+                      _memuat = true;
+                      _error = false;
+                    });
+                    _muat();
+                  },
+                )
+              : riwayat.isEmpty && wifi.isEmpty
               ? const EmptyState(
                   icon: Icons.history,
                   title: 'Belum ada data pemeriksaan',
@@ -114,10 +151,11 @@ class _HistoryPageState extends State<HistoryPage> {
                           child: ListTile(
                             leading: const Icon(Icons.health_and_safety),
                             title: Text(
-                              'Skor ${item.score} — ${item.category}',
+                              'Skor ${item.score} '
+                              '(${labelKategori(item.category)})',
                             ),
                             subtitle: Text(
-                              item.createdAt.toLocal().toString(),
+                              formatTanggalWaktu(item.createdAt),
                             ),
                           ),
                         ),
@@ -150,7 +188,7 @@ class _HistoryPageState extends State<HistoryPage> {
                             ),
                             subtitle: Text(
                               'Unduh: ${item.downloadKbps == null ? 'tidak terukur' : '${item.downloadKbps!.toStringAsFixed(1)} KB/detik'}'
-                              ' • ${item.createdAt.toLocal()}',
+                              ' • ${formatTanggalWaktu(item.createdAt)}',
                             ),
                           ),
                         ),
