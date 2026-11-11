@@ -91,10 +91,36 @@ diubah: Channel 6, QoS Disabled, dan Tx Rate Auto.
    System. Muat ulang dulu halaman Basic dan pastikan SSID Name
    tampil **ACHA** sebelum menekan Submit. Menekan Submit saat SSID
    Name masih kosong berisiko menyimpan pengaturan yang salah.
-6. Setelah SSID Name tampil ACHA, tekan Submit, tunggu router
+   Sebelum Submit, periksa juga di halaman SSID Settings, Security,
+   atau Status bahwa SSID ACHA memakai WPA/WPA2-PSK, bukan Open
+   System.
+6. Periksa kolom Beacon Interval di halaman yang sama: bila kosong,
+   isi **100** — router menolak Submit bila kolom ini kosong (pesan
+   "Beacon Interval cannot be empty"). Nilai 100 terverifikasi dari
+   panduan ZTE F660. Bila ada kolom DTIM Interval, isi 1 (nilai dari
+   panduan ZTE H108N; panduan F660 tidak menyebutkannya), dan
+   Maximum Clients 32 (masih dalam rentang 1-32 menurut panduan
+   F660). Biarkan Transmitting Power apa adanya.
+7. Setelah SSID Name tampil ACHA, tekan Submit, tunggu router
    menerapkan perubahan, lalu sambungkan ulang HP ke WiFi.
-7. Jalankan tes kecepatan di Dokter WiFi. Bila kecepatan kembali
-   normal dan bertahan, penyebabnya sudah ketemu.
+8. Jalankan tes kecepatan di Dokter WiFi. Bila kecepatan kembali
+   normal dan bertahan, penyebabnya sudah ketemu. Pastikan dengan
+   tes bertahan, bukan hanya tes singkat: angka 65 Mbps dan
+   5,75 MB/detik yang pernah terukur tidak cocok dengan tautan
+   802.11b Only yang terus-menerus, jadi kecepatan sesaat yang
+   tinggi saja belum membuktikan perbaikan. Jalankan tes bertahan
+   30 detik di aplikasi, lalu putar video 1080p selama 1 menit dan
+   perhatikan apakah kecepatan bertahan selama 60 detik penuh.
+
+   **Bila kecepatan masih jatuh setelah Mode diubah:** Mode saja
+   bukan satu-satunya penyebab. Lanjutkan ke penyebab nomor 5, 6,
+   dan 7 di bawah, plus dua tes tambahan ini: (a) coba hotspot dari
+   HP lain — bila lewat hotspot kecepatan normal, masalah ada di
+   router atau WiFi, bukan di HP ini; (b) putuskan perangkat lain
+   satu per satu dari WiFi, lalu tes lagi — bila kecepatan pulih
+   setelah satu perangkat diputus, perangkat itu yang membebani
+   jaringan. Bila ada kabel jaringan, tes dengan kabel juga membantu
+   membedakan masalah WiFi dengan masalah jalur internet.
 
 ### 2. Mode hemat daya mematikan atau membatasi WiFi
 
