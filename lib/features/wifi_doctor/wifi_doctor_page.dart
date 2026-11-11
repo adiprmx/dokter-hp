@@ -81,6 +81,15 @@ class _WifiDoctorView extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(state.tahap),
               ],
+              if (state.status == WifiStatus.awal) ...[
+                const SizedBox(height: 24),
+                const EmptyState(
+                  icon: Icons.wifi,
+                  title: 'Belum ada data pemeriksaan',
+                  message: 'Ketuk "Periksa WiFi sekarang" untuk mengukur '
+                      'kondisi WiFi perangkat ini.',
+                ),
+              ],
               if (state.status == WifiStatus.gagal) ...[
                 const SizedBox(height: 16),
                 ErrorState(
@@ -90,6 +99,20 @@ class _WifiDoctorView extends StatelessWidget {
                       context.read<WifiCubit>().jalankanPemeriksaan(),
                 ),
               ],
+              if (state.hasil != null &&
+                  state.hasil!.ssid == null &&
+                  state.hasil!.ssidPerluIzinLokasi) ...[
+                const SizedBox(height: 16),
+                _IzinLokasiCard(
+                  sedangMemeriksa: state.status == WifiStatus.berjalan,
+                ),
+              ],
+              const SizedBox(height: 16),
+              const _PantauLiveCard(),
+              const SizedBox(height: 16),
+              const _TesBertahanCard(),
+              const SizedBox(height: 16),
+              const _PanduanCard(),
               if (state.hasil != null) ...[
                 const SizedBox(height: 16),
                 _HasilCard(hasil: state.hasil!),
@@ -100,15 +123,6 @@ class _WifiDoctorView extends StatelessWidget {
                   onPressed: () => _bagikanHasil(state.hasil!),
                   icon: const Icon(Icons.share),
                   label: const Text('Bagikan hasil pemeriksaan'),
-                ),
-              ],
-              if (state.status == WifiStatus.awal) ...[
-                const SizedBox(height: 24),
-                const EmptyState(
-                  icon: Icons.wifi,
-                  title: 'Belum ada data pemeriksaan',
-                  message: 'Ketuk "Periksa WiFi sekarang" untuk mengukur '
-                      'kondisi WiFi perangkat ini.',
                 ),
               ],
             ],
@@ -366,6 +380,370 @@ class _PerbaikanCard extends StatelessWidget {
                 '${hasil.channelRecommendation}',
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kartu izin lokasi: nama WiFi tidak bisa dibaca Android tanpa izin
+/// lokasi. Tombol menjalankan ulang pemeriksaan, yang meminta izin lagi.
+class _IzinLokasiCard extends StatelessWidget {
+  const _IzinLokasiCard({required this.sedangMemeriksa});
+
+  final bool sedangMemeriksa;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Nama WiFi tidak tampil',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Nama WiFi tidak tampil karena izin lokasi belum diberikan. '
+              'Ketuk untuk mengizinkan, lalu periksa lagi. Bila sudah '
+              'diizinkan tapi tetap tidak tampil, nyalakan layanan lokasi '
+              'di perangkat.',
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+              onPressed: sedangMemeriksa
+                  ? null
+                  : () => context.read<WifiCubit>().jalankanPemeriksaan(),
+              child: const Text('Izinkan lokasi dan periksa lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kartu pemantau live: saat sakelar aktif, angka di layar diperbarui
+/// otomatis tanpa perlu mengetuk tombol.
+///
+/// Batasan kuota yang jujur: probe unduh hanya tiap 10 detik dengan
+/// file 100 KB (sekitar 600 KB per menit); info ringan (sinyal,
+/// kecepatan koneksi, channel, latensi) diperbarui tiap 2 detik tanpa
+/// mengunduh file.
+class _PantauLiveCard extends StatelessWidget {
+  const _PantauLiveCard();
+
+  String _formatJam(DateTime waktu) {
+    String dua(int n) => n.toString().padLeft(2, '0');
+    return '${dua(waktu.hour)}:${dua(waktu.minute)}:${dua(waktu.second)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<WifiCubit, WifiState>(
+      builder: (context, state) {
+        final live = state.liveHasil;
+        final sibuk = state.status == WifiStatus.berjalan ||
+            state.sustainedStatus == SustainedStatus.berjalan;
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Pantau live'),
+                  subtitle: const Text(
+                    'Saat sakelar ini aktif, angka di layar diperbarui '
+                    'otomatis tanpa perlu mengetuk tombol.',
+                  ),
+                  value: state.pantauLive,
+                  onChanged: (aktif) {
+                    if (aktif && sibuk) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Pemantau live tidak bisa dinyalakan saat '
+                            'pemeriksaan atau tes bertahan sedang berjalan.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    context.read<WifiCubit>().alihkanPantauLive(aktif);
+                  },
+                ),
+                const Text(
+                  'Pemakaian data sekitar 600 KB per menit: probe unduh '
+                  '100 KB setiap 10 detik. Info sinyal, kecepatan koneksi, '
+                  'channel, dan latensi diperbarui setiap 2 detik tanpa '
+                  'mengunduh file.',
+                  style: TextStyle(color: AppTheme.mutedGrey),
+                ),
+                if (state.pantauLive) ...[
+                  const SizedBox(height: 12),
+                  InfoRow(
+                    label: 'Kecepatan unduh',
+                    value: live?.downloadKbps == null
+                        ? 'Mengukur...'
+                        : formatKbps(live!.downloadKbps!),
+                  ),
+                  InfoRow(
+                    label: 'Kekuatan sinyal',
+                    value: live?.rssiDbm == null
+                        ? 'Tidak tersedia'
+                        : '${live!.signalText} (${live.rssiDbm} dBm)',
+                  ),
+                  InfoRow(
+                    label: 'Kecepatan koneksi',
+                    value: live?.linkSpeedMbps == null
+                        ? 'Tidak tersedia'
+                        : '${live!.linkSpeedMbps} Mbps',
+                  ),
+                  InfoRow(
+                    label: 'Channel',
+                    value: live?.channel == null
+                        ? 'Tidak tersedia'
+                        : '${live!.channel}',
+                  ),
+                  InfoRow(
+                    label: 'Latensi HTTP',
+                    value: live?.pingMs == null
+                        ? 'Tidak berhasil diukur'
+                        : '${live!.pingMs} ms',
+                  ),
+                  if (state.liveDiperbarui != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Terakhir diperbarui pukul '
+                        '${_formatJam(state.liveDiperbarui!)}.',
+                        style: const TextStyle(color: AppTheme.mutedGrey),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Kartu tes bertahan 30 detik: mengunduh file uji 1 MB berulang selama
+/// 30 detik dan mencatat kecepatan tiap detik, lalu menilai apakah
+/// kecepatan bertahan atau jatuh di tengah jalan.
+class _TesBertahanCard extends StatelessWidget {
+  const _TesBertahanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<WifiCubit, WifiState>(
+      builder: (context, state) {
+        final cubit = context.read<WifiCubit>();
+        final berjalan = state.sustainedStatus == SustainedStatus.berjalan;
+        final hasil = state.sustainedHasil;
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tes bertahan 30 detik',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Mengunduh file uji 1 MB berulang selama 30 detik dan '
+                  'mencatat kecepatan tiap detik, untuk melihat apakah '
+                  'kecepatan bertahan atau jatuh di tengah jalan.',
+                ),
+                const SizedBox(height: 12),
+                if (berjalan) ...[
+                  LinearProgressIndicator(
+                    value: state.sustainedDetik / 30,
+                    backgroundColor: Colors.black12,
+                    color: Colors.black,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Detik ${state.sustainedDetik} dari 30'
+                    '${state.sustainedSampelTerakhir == null ? '' : ' — kecepatan saat ini ${formatKbps(state.sustainedSampelTerakhir!)}'}',
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: () => cubit.batalkanTesBertahan(),
+                    icon: const Icon(Icons.stop),
+                    label: const Text('Berhenti'),
+                  ),
+                ] else ...[
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: () => cubit.mulaiTesBertahan(),
+                    icon: const Icon(Icons.timer),
+                    label: const Text('Tes bertahan 30 detik'),
+                  ),
+                ],
+                if (state.sustainedStatus == SustainedStatus.gagal) ...[
+                  const SizedBox(height: 12),
+                  Text(state.sustainedPesan),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    onPressed: () => cubit.mulaiTesBertahan(),
+                    child: const Text('Coba lagi'),
+                  ),
+                ],
+                if (hasil != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    hasil.verdict.label,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(hasil.verdict.penjelasan),
+                  const SizedBox(height: 12),
+                  InfoRow(
+                    label: 'Terendah',
+                    value: formatKbps(hasil.terendahKbps),
+                  ),
+                  InfoRow(
+                    label: 'Rata-rata',
+                    value: formatKbps(hasil.rataRataKbps),
+                  ),
+                  InfoRow(
+                    label: 'Tertinggi',
+                    value: formatKbps(hasil.tertinggiKbps),
+                  ),
+                  const SizedBox(height: 12),
+                  _GrafikSampel(samples: hasil.samples),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Kecepatan tiap detik:',
+                    style: TextStyle(color: AppTheme.mutedGrey),
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (var i = 0; i < hasil.samples.length; i++)
+                        Text('d${i + 1}: ${formatKbps(hasil.samples[i])}'),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Grafik batang sederhana dari sampel per detik. Tinggi batang
+/// sebanding dengan kecepatan (dinormalisasi ke sampel tertinggi);
+/// bukan grafik contoh — tiap batang adalah satu detik tes yang nyata.
+class _GrafikSampel extends StatelessWidget {
+  const _GrafikSampel({required this.samples});
+
+  final List<double> samples;
+
+  @override
+  Widget build(BuildContext context) {
+    final maks = samples.reduce((a, b) => a > b ? a : b);
+    return Semantics(
+      label: 'Grafik kecepatan per detik selama tes bertahan',
+      child: SizedBox(
+        height: 72,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            for (final nilai in samples)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 1),
+                  child: Container(
+                    height: maks <= 0
+                        ? 2
+                        : (nilai / maks * 64).clamp(2.0, 64.0),
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kartu panduan saat WiFi turun ke KB/detik. Teks disalin kata per kata
+/// dari docs/panduan-wifi-turun.md (bagian "Teks untuk kartu di
+/// aplikasi"), jangan diubah atau diparafrase.
+class _PanduanCard extends StatelessWidget {
+  const _PanduanCard();
+
+  static const _langkah = [
+    'Putar video 1080p selama 1 menit sambil memperhatikan angka kecepatan.',
+    'Bandingkan dengan HP lain di WiFi yang sama.',
+    'Matikan penghemat baterai dan penghemat data, kemudian tes lagi.',
+    'Lupakan jaringan, sambung ulang, kemudian mulai ulang router bila masih lambat.',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'WiFi turun ke KB/detik? Cek dulu sebelum panik',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Angka di bar atas menunjukkan laju data saat itu. Tes '
+              'singkat hanya mengukur kecepatan sesaat, sedangkan tes '
+              'bertahan 30 detik menunjukkan apakah kecepatan bertahan '
+              'atau jatuh di tengah jalan. Bila kecepatan tetap jatuh saat '
+              'video sedang diputar, masalahnya nyata dan perlu dicari '
+              'penyebabnya.',
+            ),
+            const SizedBox(height: 12),
+            for (var i = 0; i < _langkah.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${i + 1}.  '),
+                    Expanded(child: Text(_langkah[i])),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

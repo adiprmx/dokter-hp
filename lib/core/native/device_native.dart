@@ -33,6 +33,28 @@ class DeviceNative {
     }
   }
 
+  /// SSID WiFi yang sedang tersambung (tanpa tanda kutip). Null bila
+  /// Android menahan namanya — umumnya karena izin lokasi belum
+  /// diberikan atau layanan lokasi mati.
+  static Future<String?> wifiSsid() async {
+    try {
+      return await _channel.invokeMethod<String>('wifiSsid');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Alamat IP gateway WiFi. Null bila tidak bisa dibaca.
+  static Future<String?> wifiGatewayIp() async {
+    try {
+      return await _channel.invokeMethod<String>('wifiGatewayIp');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Server DNS jaringan aktif, sudah disaring di sisi native
+  /// (tanpa alamat link-local fe80::/10 dan tanpa zone id).
   static Future<List<String>> dnsServers() async {
     try {
       final hasil = await _channel.invokeMethod<List<dynamic>>('dnsServers');

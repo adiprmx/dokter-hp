@@ -2,6 +2,36 @@
 
 Semua perubahan penting proyek ini dicatat di file ini.
 
+## v1.0.1 — 12 November 2026
+
+### Diperbaiki
+
+- Dokter WiFi kini menampilkan SSID, alamat gateway, dan daftar DNS
+  yang benar (nilai "Tidak tersedia" dan format alamat IPv6 yang
+  tercampur nama antarmuka sudah dibersihkan); bila izin lokasi belum
+  diberikan, aplikasi menjelaskan bahwa SSID memerlukan izin lokasi
+  dan membuka permintaan izin runtime.
+- Pengukuran kecepatan unduh memakai satuan mikrodetik, sehingga
+  pembulatan waktu tidak lagi membuat hasil tes singkat meleset.
+
+### Ditambahkan
+
+- Pemantau live Dokter WiFi: kecepatan dan latensi diperbarui tiap
+  2 detik, dengan probe kecil tiap 10 detik saat tidak ada unduhan
+  berjalan.
+- Tes bertahan 30 detik: mengukur apakah kecepatan bertahan dari awal
+  sampai akhir, atau mulai cepat kemudian jatuh, lengkap dengan grafik
+  batang dan kesimpulan bertahan / jatuh / tidak stabil.
+- Kartu panduan "WiFi turun ke KB/detik" di dalam aplikasi, dengan teks
+  yang sama seperti `docs/panduan-wifi-turun.md`.
+- Panduan `docs/panduan-wifi-turun.md` kini menempatkan Mode router
+  802.11b Only sebagai penyebab nomor 1 (paling mungkin): mode
+  IEEE 802.11b Only di ZTE F660 (Network > WLAN > Basic) maksimal
+  11 Mbps dan mudah jatuh ke KB/detik — ubah ke 802.11b/g/n Mixed.
+  Channel 6, QoS Disabled, dan Tx Rate Auto sudah benar. Jangan tekan
+  Submit sebelum memuat ulang halaman dan memastikan SSID Name
+  tampil ACHA.
+
 ## v1.0.0 — 11 November 2026 (rilis pertama)
 
 ### Ditambahkan

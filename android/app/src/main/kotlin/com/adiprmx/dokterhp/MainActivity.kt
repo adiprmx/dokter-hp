@@ -14,6 +14,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.net.Inet4Address
 
 /**
  * MainActivity Dokter HP.
@@ -38,6 +39,8 @@ class MainActivity : FlutterActivity() {
                 "wifiRssi" -> result.success(wifiConnectionInfo()?.rssi)
                 "wifiLinkSpeed" -> result.success(wifiConnectionInfo()?.linkSpeed)
                 "wifiFrequency" -> result.success(wifiConnectionInfo()?.frequency)
+                "wifiSsid" -> result.success(wifiSsid())
+                "wifiGatewayIp" -> result.success(wifiGatewayIp())
                 "dnsServers" -> result.success(dnsServers())
                 "openWifiSettings" -> {
                     try {
@@ -68,12 +71,82 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    /**
+     * SSID WiFi yang sedang tersambung. WifiInfo.ssid mengembalikan nama
+     * dalam tanda kutip ("ACHA") dan "<unknown ssid>" bila Android
+     * menahan namanya (izin lokasi belum diberikan atau layanan lokasi
+     * mati). Keduanya dibersihkan di sini; Dart menerima null secara
+     * jujur bila nama tidak bisa dibaca.
+     */
+    private fun wifiSsid(): String? {
+        return try {
+            val mentah = wifiConnectionInfo()?.ssid ?: return null
+            val bersih = mentah.trim().removeSurrounding("\"")
+            if (bersih.isEmpty() || bersih == "<unknown ssid>") null else bersih
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Alamat IP gateway. Sumber utama DhcpInfo.gateway (int little-endian);
+     * bila 0 (tidak ada DHCP atau WiFi tidak tersambung), fallback ke
+     * gateway dari rute LinkProperties jaringan aktif.
+     */
+    private fun wifiGatewayIp(): String? {
+        return try {
+            val wifiManager =
+                applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            @Suppress("DEPRECATION")
+            val dhcp = wifiManager.dhcpInfo
+            if (dhcp != null && dhcp.gateway != 0) {
+                return intKeIp(dhcp.gateway)
+            }
+            val cm =
+                getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val props = cm.getLinkProperties(cm.activeNetwork) ?: return null
+            for (rute in props.routes) {
+                val gateway = rute.gateway
+                if (gateway is Inet4Address) {
+                    return gateway.hostAddress
+                }
+            }
+            null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Konversi int little-endian ala DhcpInfo menjadi string IPv4. */
+    private fun intKeIp(nilai: Int): String {
+        return "${nilai and 0xff}.${nilai shr 8 and 0xff}" +
+            ".${nilai shr 16 and 0xff}.${nilai shr 24 and 0xff}"
+    }
+
+    /**
+     * Daftar server DNS dari LinkProperties jaringan aktif, sudah
+     * disaring: alamat link-local (fe80::/10, juga 169.254.0.0/16),
+     * alamat yang membawa zone id ("%wlan0"), dan teks yang bukan
+     * alamat IP dibuang. Hanya IPv4 valid dan IPv6 global yang lolos.
+     */
     private fun dnsServers(): List<String> {
         return try {
             val cm =
                 getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val props = cm.getLinkProperties(cm.activeNetwork) ?: return emptyList()
-            props.dnsServers.map { it.hostAddress ?: it.toString() }
+            props.dnsServers.mapNotNull { alamat ->
+                val host = alamat.hostAddress ?: return@mapNotNull null
+                if (alamat.isLinkLocalAddress) return@mapNotNull null
+                if ('%' in host) return@mapNotNull null
+                if (!host.all {
+                        it.isDigit() || it == '.' || it == ':' ||
+                            it in 'a'..'f' || it in 'A'..'F'
+                    }
+                ) {
+                    return@mapNotNull null
+                }
+                host
+            }
         } catch (e: Exception) {
             emptyList()
         }

@@ -85,6 +85,31 @@ batasan Android.
 - **Bagikan hasil**: teks ringkasan lewat sheet berbagi sistem.
 - Hasil pemeriksaan tersimpan otomatis ke riwayat lokal.
 
+### 3.2.1 Diagnosis WiFi turun (v1.0.1)
+
+Panduan lengkap ada di `docs/panduan-wifi-turun.md`. Ringkasnya:
+
+- **Patokan normal:** kecepatan unduh di HP ini biasanya 1 MB/detik,
+  dan normalnya di atas 2 MB/detik. Turun ke KB/detik saat sedang
+  memakai internet itu tidak normal.
+- **Penyebab paling mungkin — Mode router 802.11b Only:** di halaman
+  Network > WLAN > Basic pada router ZTE F660, Mode terisi IEEE
+  802.11b Only (teknologi 1999, maksimal 11 Mbps, mudah jatuh ke
+  KB/detik). Ubah ke 802.11b/g/n Mixed. Channel 6, QoS Disabled, dan
+  Tx Rate Auto sudah benar dan tidak perlu diubah. Jangan tekan Submit
+  sebelum memuat ulang halaman dan memastikan SSID Name tampil ACHA.
+- **Tes bertahan 30 detik:** tes yang berjalan terus selama 30 detik
+  untuk mengukur apakah kecepatan bertahan dari awal sampai akhir,
+  atau mulai cepat kemudian jatuh di tengah jalan. Tes singkat hanya
+  mengukur kecepatan sesaat, jadi keduanya saling melengkapi.
+- **Dua tes pembeda:** (a) kecepatan jatuh hanya saat HP diam, atau
+  jatuh juga saat video 1080p diputar / file besar diunduh selama
+  1 menit; (b) HP lain di WiFi yang sama normal, atau ikut jatuh.
+  Hasil kedua tes menunjukkan apakah masalah ada di HP ini, di
+  router, atau di jaringan.
+- Panduan ini bagian dari v1.0.1; teks kartu panduan di dalam aplikasi
+  disalin dari bagian akhir `docs/panduan-wifi-turun.md`.
+
 ### 3.3 Dokter Baterai
 
 - Level baterai (%), status (mengisi / dipakai / penuh), mode hemat daya.

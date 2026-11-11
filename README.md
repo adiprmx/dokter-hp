@@ -3,12 +3,13 @@
 Aplikasi Android untuk mendeteksi dan memperbaiki masalah HP: WiFi lemot,
 baterai boros, penyimpanan penuh, performa berat, dan keamanan.
 
-## Status rilis v1.0.0 (12 November 2026)
+## Status rilis v1.0.1 (12 November 2026)
 
 - Repo public: https://github.com/adiprmx/dokter-hp
-- Rilis: https://github.com/adiprmx/dokter-hp/releases/tag/v1.0.0
-- `flutter analyze` tanpa masalah, `flutter test` 50 dari 50 lulus
-  (11 November 2026). CI GitHub Actions run #1 dan #2 success.
+- Rilis: https://github.com/adiprmx/dokter-hp/releases/tag/v1.0.1
+- `flutter analyze` tanpa masalah, `flutter test` 76 dari 76 lulus
+  (12 November 2026). CI GitHub Actions run #1 dan #2 success (v1.0.0);
+  run v1.0.1 menyusul di bawah.
 
 ### Unduh APK
 
@@ -47,6 +48,27 @@ sinkronisasi riwayat.
 > 50 KB/detik ke 3,2 KB/detik. Dokter HP mengukur kecepatan sebenarnya,
 > menampilkan sinyal, channel, dan latensi, lalu memberi langkah
 > perbaikan yang jujur.
+
+## Diagnosis WiFi turun (v1.0.1)
+
+Panduan lengkap ada di [docs/panduan-wifi-turun.md](docs/panduan-wifi-turun.md).
+
+- **Patokan normal:** kecepatan unduh di HP ini biasanya 1 MB/detik,
+  dan normalnya di atas 2 MB/detik. Turun ke KB/detik saat sedang
+  memakai internet itu tidak normal.
+- **Penyebab paling mungkin — Mode router 802.11b Only:** di halaman
+  Network > WLAN > Basic pada router ZTE F660, Mode terisi IEEE
+  802.11b Only (teknologi 1999, maksimal 11 Mbps, mudah jatuh ke
+  KB/detik). Ubah ke 802.11b/g/n Mixed. Channel 6, QoS Disabled, dan
+  Tx Rate Auto sudah benar. Jangan tekan Submit sebelum memuat ulang
+  halaman dan memastikan SSID Name tampil ACHA.
+- **Tes bertahan 30 detik:** tes yang berjalan terus selama 30 detik
+  untuk mengukur apakah kecepatan bertahan dari awal sampai akhir,
+  atau mulai cepat kemudian jatuh di tengah jalan. Tes singkat hanya
+  mengukur kecepatan sesaat.
+- **Dua tes pembeda:** (a) kecepatan jatuh hanya saat HP diam, atau
+  jatuh juga saat video 1080p diputar / file besar diunduh selama
+  1 menit; (b) HP lain di WiFi yang sama normal, atau ikut jatuh.
 
 ## Fitur
 
