@@ -1,0 +1,64 @@
+# config.toml — Konfigurasi Supabase CLI untuk proyek Dokter HP
+#
+# File ini dipakai oleh Supabase CLI untuk pengembangan lokal
+# (`supabase start`, `supabase db push`, `supabase functions deploy`).
+# Nilai di sini hanya untuk lingkungan lokal dan bukan secret.
+# Sesuaikan `project_id` setelah proyek dibuat di dashboard Supabase,
+# lalu hubungkan dengan perintah `supabase link --project-ref <ref-id>`.
+
+project_id = "dokter-hp"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 6543
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1:54321"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 9999
+site_url = "http://127.0.0.1:3000"
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_confirmations = false
+
+[edge_runtime]
+enabled = true
+
+# Edge Function wajib membawa JWT pengguna yang valid.
+# Aplikasi Android mengirim token pengguna pada header Authorization.
+[functions.ai-diagnose]
+verify_jwt = true
+
+[functions.fcm-notify]
+verify_jwt = true

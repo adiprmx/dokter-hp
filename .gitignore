@@ -1,0 +1,22 @@
+# Flutter / Dart
+.dart_tool/
+.build/
+build/
+*.iml
+.idea/
+.vscode/
+# pubspec.lock SENGAJA di-commit untuk aplikasi (bukan package): mengunci
+# versi dependency yang sudah terverifikasi (drift 2.35.4, dst.).
+
+# Android
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
+local.properties
+
+# Generated
+lib/data/local/app_database.g.dart
+
+# OS
+.DS_Store
+Thumbs.db

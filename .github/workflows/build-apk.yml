@@ -1,0 +1,65 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Drift code
+        run: dart run build_runner build
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Periksa secret Supabase (peringatan saja, bukan gagal)
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ] || [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "::warning::Secret SUPABASE_URL / SUPABASE_ANON_KEY kosong — APK dibangun dalam mode lokal (tanpa server). Semua diagnosis tetap jalan memakai data perangkat."
+          else
+            echo "Secrets OK — build dengan Supabase."
+          fi
+
+      - name: Build APK (release)
+        run: |
+          DEFINES=""
+          if [ -n "${{ secrets.SUPABASE_URL }}" ]; then
+            DEFINES="$DEFINES --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }}"
+          fi
+          if [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            DEFINES="$DEFINES --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}"
+          fi
+          # versionCode Android = nomor build CI (github.run_number, monoton naik).
+          flutter build apk --release --obfuscate --split-debug-info=build/debug-info --build-number=${{ github.run_number }} $DEFINES
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dokter-hp-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

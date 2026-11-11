@@ -1,0 +1,59 @@
+name: dokter_hp
+description: "Dokter HP — aplikasi diagnosis dan perbaikan masalah HP: WiFi, baterai, penyimpanan, performa, dan keamanan."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_bloc: ^9.1.1
+
+  # Backend opsional (mode lokal tetap jalan penuh tanpa ini)
+  supabase_flutter: ^2.18.0
+
+  # Database lokal
+  drift: ^2.28.0
+  sqlite3_flutter_libs: ^0.5.0
+
+  # Penyimpanan aman (hanya hash PIN dan flag non-sensitif)
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.6
+
+  # Kunci aplikasi (biometrik + PIN)
+  local_auth: ^3.0.0
+  crypto: ^3.0.0
+
+  # Jaringan dan perangkat
+  connectivity_plus: ^7.0.0
+  network_info_plus: ^7.0.0
+  battery_plus: ^6.0.0
+  device_info_plus: ^12.0.0
+
+  # Berbagi dan tautan
+  share_plus: ^12.0.0
+  url_launcher: ^6.3.1
+  permission_handler: ^12.0.0
+
+  # Laporan PDF
+  pdf: ^3.11.0
+  printing: ^5.14.0
+
+  # Jalur file database lokal (paket resmi Flutter, diperlukan Drift
+  # untuk lokasi direktori dokumen aplikasi).
+  path: ^1.9.1
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.28.0
+  build_runner: ^2.4.0
+
+flutter:
+  uses-material-design: true
