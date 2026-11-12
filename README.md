@@ -8,20 +8,21 @@ baterai boros, penyimpanan penuh, performa berat, dan keamanan.
 - Repo public: https://github.com/adiprmx/dokter-hp
 - Rilis: https://github.com/adiprmx/dokter-hp/releases/tag/v1.1.0
 - `flutter analyze` tanpa masalah, `flutter test` 98 dari 98 lulus
-  (12 November 2026). CI GitHub Actions run v1.1.0 menyusul
-  (status diperbarui setelah run selesai).
+  (12 November 2026). CI GitHub Actions run #11 success
+  (v1.1.0).
 
 ### Unduh APK
 
 - **Tautan langsung:** menyusul — unggahan APK v1.1.0 ke penyimpanan
-  Muse menunggu persetujuan; minta tautan baru bila sudah tersedia.
+  Muse gagal saat rilis (dua upaya: layanan terputus di tengah jalan,
+  lalu dibatalkan); minta tautan baru bila sudah tersedia.
 - **Cadangan lewat GitHub Actions:** artefak `dokter-hp-apk` dari
-  run CI v1.1.0 (perlu login GitHub; tautan run diperbarui setelah
-  CI selesai).
+  [run #11](https://github.com/adiprmx/dokter-hp/actions/runs/43160445292)
+  (perlu login GitHub; kedaluwarsa 26 November 2026 12:25 WIB).
 - Halaman [Release v1.1.0](https://github.com/adiprmx/dokter-hp/releases/tag/v1.1.0)
   saat ini belum melampirkan APK (0 aset); lampiran ke Release
-  menyusul lewat browser. Detail APK v1.1.0 (ukuran dan SHA-256)
-  diperbarui setelah CI selesai.
+  menyusul lewat browser. APK v1.1.0: 58.107.194 byte, SHA-256
+  `e8183e11fe6c0ca299593b51f44c663474958e315244702bcfdc7f03da693a2a`.
 
 ### Status backend Supabase: TERBLOKIR (menunggu keputusan owner)
 
