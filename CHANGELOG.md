@@ -2,6 +2,36 @@
 
 Semua perubahan penting proyek ini dicatat di file ini.
 
+## v1.1.0 — 12 November 2026
+
+### Diubah
+
+- Rancang ulang UI/UX penuh di 9 layar (Dashboard, Dokter WiFi,
+  Dokter Baterai, Dokter Penyimpanan, Dokter Performa, Dokter
+  Keamanan, Riwayat, Diagnosis AI, Akun): tema gelap dengan motif
+  meter bertanda strip, tipografi dan jarak yang dirapikan, serta
+  status kosong dan status gagal yang ditulis ulang agar lebih
+  jelas. Screenshot baru di `docs/screenshots/*-v11.png`.
+- Komponen baru: `MeterGauge` untuk tampilan meter bertanda strip,
+  skeleton saat memuat, serta tampilan kosong dan tampilan gagal
+  yang baru dan konsisten di semua layar.
+
+### Diperbaiki
+
+- Chip status (`StatusChip` dan `LiveChip`) yang tampil melebar
+  selebar layar bila diletakkan langsung di daftar kini tampil
+  sesuai lebar isinya, rata kiri. Ditambah 2 test regresi.
+
+### Ditambahkan
+
+- Test bertambah menjadi 98 test, semuanya lulus
+  (`flutter analyze` tanpa masalah, `flutter test` 98/98,
+  12 November 2026). Tiga golden baru: Diagnosis AI, Akun, dan
+  Akun masuk Google.
+- Laporan perbandingan sebelum/sesudah rancang ulang di
+  `docs/redesign-v11-before-after.md`; spesifikasi rancang ulang
+  di `docs/redesign-v11-spec.md`.
+
 ## v1.0.1 — 12 November 2026
 
 ### Diperbaiki

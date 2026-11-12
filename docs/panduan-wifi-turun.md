@@ -1,6 +1,6 @@
 # Panduan: WiFi Turun ke KB/detik
 
-Panduan diagnosis untuk pengguna Dokter HP v1.0.1. Bahasa di sini dibuat
+Panduan diagnosis untuk pengguna Dokter HP v1.1.0. Bahasa di sini dibuat
 sehari-hari supaya gampang diikuti tanpa latar belakang teknis.
 
 ## Yang perlu diketahui dulu

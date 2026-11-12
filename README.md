@@ -3,26 +3,25 @@
 Aplikasi Android untuk mendeteksi dan memperbaiki masalah HP: WiFi lemot,
 baterai boros, penyimpanan penuh, performa berat, dan keamanan.
 
-## Status rilis v1.0.1 (12 November 2026)
+## Status rilis v1.1.0 (12 November 2026)
 
 - Repo public: https://github.com/adiprmx/dokter-hp
-- Rilis: https://github.com/adiprmx/dokter-hp/releases/tag/v1.0.1
-- `flutter analyze` tanpa masalah, `flutter test` 76 dari 76 lulus
-  (12 November 2026). CI GitHub Actions run #6 dan #7 success
-  (v1.0.1).
+- Rilis: https://github.com/adiprmx/dokter-hp/releases/tag/v1.1.0
+- `flutter analyze` tanpa masalah, `flutter test` 98 dari 98 lulus
+  (12 November 2026). CI GitHub Actions run v1.1.0 menyusul
+  (status diperbarui setelah run selesai).
 
 ### Unduh APK
 
-- **Tautan langsung:** menyusul — unggahan APK v1.0.1 ke penyimpanan
-  Muse menunggu persetujuan (kartu persetujuan kedaluwarsa saat
-  rilis; minta tautan baru bila sudah tersedia).
+- **Tautan langsung:** menyusul — unggahan APK v1.1.0 ke penyimpanan
+  Muse menunggu persetujuan; minta tautan baru bila sudah tersedia.
 - **Cadangan lewat GitHub Actions:** artefak `dokter-hp-apk` dari
-  [run #7](https://github.com/adiprmx/dokter-hp/actions/runs/43085906805)
-  (perlu login GitHub; kedaluwarsa 26 November 2026 02:25 WIB).
-- Halaman [Release v1.0.1](https://github.com/adiprmx/dokter-hp/releases/tag/v1.0.1)
+  run CI v1.1.0 (perlu login GitHub; tautan run diperbarui setelah
+  CI selesai).
+- Halaman [Release v1.1.0](https://github.com/adiprmx/dokter-hp/releases/tag/v1.1.0)
   saat ini belum melampirkan APK (0 aset); lampiran ke Release
-  menyusul lewat browser. APK v1.0.1: 57.549.686 byte, SHA-256
-  `8c35f128ad3e369ef2ca616235d4317bf2bb18d64ae1e8b6bac7645983e4c1d4`.
+  menyusul lewat browser. Detail APK v1.1.0 (ukuran dan SHA-256)
+  diperbarui setelah CI selesai.
 
 ### Status backend Supabase: TERBLOKIR (menunggu keputusan owner)
 

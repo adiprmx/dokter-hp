@@ -8,7 +8,7 @@ class AppConfig {
   AppConfig._();
 
   static const String appName = 'Dokter HP';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.1.0';
 
   /// URL proyek Supabase, diisi lewat `--dart-define=SUPABASE_URL=...`.
   static const String supabaseUrl = String.fromEnvironment(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dokter_hp/app.dart';
 import 'package:dokter_hp/core/app_config.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/data/local/app_database.dart';
 import 'package:dokter_hp/data/sync/supabase_sync_service.dart';
 
@@ -81,14 +82,9 @@ class _BootSplashApp extends StatelessWidget {
       home: PopScope(
         canPop: false,
         child: Scaffold(
-          backgroundColor: Colors.white,
-          body: Center(
-            child: Text(
-              'Dokter HP',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
+          backgroundColor: AppTheme.bg,
+          body: const Center(
+            child: Text('Dokter HP', style: AppTheme.headline),
           ),
         ),
       ),

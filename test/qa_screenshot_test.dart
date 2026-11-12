@@ -1,4 +1,8 @@
+import 'package:dokter_hp/core/app_config.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/data/local/app_database.dart';
+import 'package:dokter_hp/features/ai_diagnosis/ai_diagnosis.dart';
+import 'package:dokter_hp/features/auth/auth_page.dart';
 import 'package:dokter_hp/features/battery/battery_page.dart';
 import 'package:dokter_hp/features/dashboard/dashboard_page.dart';
 import 'package:dokter_hp/features/history/history_page.dart';
@@ -20,6 +24,13 @@ import 'package:flutter_test/flutter_test.dart';
 /// Dijalankan dengan `flutter test --update-goldens` untuk membuat
 /// berkasnya, lalu `flutter test` biasa untuk memastikan hasilnya
 /// stabil (deterministik).
+///
+/// Golden "akun masuk google" hanya berjalan bila Supabase
+/// terkonfigurasi lewat --dart-define (nilai dummy cukup, yang
+/// diuji hanya render tombol + logo Google, bukan login sungguhan):
+///   flutter test --dart-define=SUPABASE_URL=https://qa-contoh.supabase.co \
+///     --dart-define=SUPABASE_ANON_KEY=qa-kunci-uji --update-goldens \
+///     --plain-name "screenshot: akun masuk google" test/qa_screenshot_test.dart
 void main() {
   late AppDatabase database;
 
@@ -27,7 +38,7 @@ void main() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
 
     // Channel native aplikasi (MainActivity): tidak ada data perangkat
-    // di lingkungan tes — kembalikan null/kosong, sesuai kontrak
+    // di lingkungan tes, kembalikan null/kosong, sesuai kontrak
     // "null = tidak tersedia" di MainActivity.kt.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -119,6 +130,33 @@ void main() {
         return null;
       },
     );
+
+    // Mock penyimpanan aman + local_auth untuk halaman Akun: baca
+    // mengembalikan null (PIN belum diatur), biometrik tidak tersedia.
+    // Tanpa mock ini, halaman Akun jatuh ke status galat setelah batas
+    // 30 detik (lihat test/redesign_widget_test.dart grup 'akun').
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel(
+        'plugins.it_nomads.com/flutter_secure_storage',
+      ),
+      (call) async => null,
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/local_auth'),
+      (call) async {
+        switch (call.method) {
+          case 'getAvailableBiometrics':
+            return <String>[];
+          case 'isDeviceSupported':
+          case 'authenticate':
+            return false;
+          default:
+            return null;
+        }
+      },
+    );
   });
 
   tearDown(() async {
@@ -128,6 +166,8 @@ void main() {
       'dev.fluttercommunity.plus/battery',
       'dev.fluttercommunity.plus/charging',
       'dev.fluttercommunity.plus/device_info',
+      'plugins.it_nomads.com/flutter_secure_storage',
+      'plugins.flutter.io/local_auth',
     ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(MethodChannel(name), null);
@@ -144,7 +184,12 @@ void main() {
     tester.view.physicalSize = const Size(780, 1688);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(home: halaman));
+    // Tema aplikasi yang sebenarnya: tanpa ini, golden memakai tema
+    // default Flutter (latar ungu muda, tombol ungu) dan tidak
+    // mencerminkan tampilan aplikasi.
+    await tester.pumpWidget(
+      MaterialApp(theme: AppTheme.dark(), home: halaman),
+    );
     await tester.pump();
     // Beri waktu untuk pemuatan async (baterai memakai timeout 5 detik,
     // performa membaca /proc/stat dua kali dengan jeda 1 detik).
@@ -230,4 +275,34 @@ void main() {
       'qa-riwayat.png',
     );
   });
+
+  testWidgets('screenshot: diagnosis ai', (tester) async {
+    await ambilScreenshot(
+      tester,
+      const AiDiagnosisPage(),
+      'qa-ai-diagnosis.png',
+    );
+  });
+
+  testWidgets('screenshot: akun', (tester) async {
+    await ambilScreenshot(
+      tester,
+      const AuthPage(),
+      'qa-akun.png',
+    );
+  });
+
+  testWidgets(
+    'screenshot: akun masuk google',
+    (tester) async {
+      await ambilScreenshot(
+        tester,
+        const AuthPage(),
+        'qa-akun-login.png',
+      );
+    },
+    // Tombol "Masuk dengan Google" (dan logo Google-nya) hanya tampil
+    // bila Supabase terkonfigurasi; di run biasa test ini di-skip.
+    skip: !AppConfig.isSupabaseConfigured,
+  );
 }

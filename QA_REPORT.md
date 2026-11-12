@@ -387,3 +387,123 @@ menghasilkan screenshot.
 | `QA_REPORT.md` (baru) | Laporan ini. |
 
 Tidak ada perubahan di folder `supabase/`. Tidak ada push ke GitHub.
+
+---
+
+## 8. Ronde v1.1.0: verifikasi rancang ulang (12 Nov 2026)
+
+Auditor: Lead QA (agen QA). Acuan: `docs/redesign-v11-spec.md`,
+`DESIGN.md`, checklist v1.1.0 di `DESIGN_AUDIT.md` bagian 9-12.
+Laporan before/after lengkap per layar:
+`docs/redesign-v11-before-after.md`.
+
+Versi TIDAK berubah di ronde ini (tetap 1.0.1+2). Tidak ada push,
+tidak ada release, tidak ada perubahan `CHANGELOG.md`.
+
+### 8.1 Bukti test
+
+- `flutter analyze`: 0 issue ("No issues found!").
+- `flutter test` (tanpa dart-define): 98/98 lulus, 10 skip
+  (9 test tangkap layar + 1 test golden logo, keduanya hanya jalan
+  dengan dart-define). Saat serah terima tim implementasi: 94/94.
+  Kenaikan 4 test berasal dari QA: 2 golden baru (AI Diagnosis,
+  Akun) + 2 test regresi chip.
+- `flutter test --dart-define=QA_CAPTURE=true`: 9/9 tangkapan
+  screenshot berhasil.
+- Golden logo Google (dart-define Supabase contoh): lulus,
+  `test/goldens/qa-akun-login.png` dibuat; logo G ter-render wajar.
+- Klaim tim implementasi terverifikasi independen: analyze 0 issue,
+  test 94/94 saat serah terima, nol kata terlarang di `lib/` +
+  `test/`, nol em dash di string UI, tema gelap, 9 layar ditulis
+  ulang. Semua benar.
+- Tidak ada test logika yang dilonggarkan (`health_score`,
+  `wifi_logic`, `wifi_fix`, `wifi_live_sustained`, `lock_gate`,
+  `supabase_sync` tidak disentuh).
+
+### 8.2 Kepatuhan 13 aturan mengikat
+
+Semua 13 aturan spesifikasi bagian 5 LOLOS (bukti per aturan di
+`docs/redesign-v11-before-after.md`). Sorotan: kontras dihitung
+ulang independen (rumus WCAG), cocok dengan tabel spesifikasi;
+`textFaint` (#757575) hanya dipakai di tombol nonaktif (dikecualikan
+WCAG) dan footer versi Akun di latar hitam (4,56:1, lolos); panduan
+WiFi diverifikasi verbatim kata per kata; tidak ada data dummy,
+emoji, warna dekoratif, atau ikon terlarang di UI.
+
+### 8.3 Temuan dan perbaikan di ronde ini
+
+1. **Chip melebar selebar layar (bug aplikasi nyata, DIPERBAIKI).**
+   `StatusChip` dan `LiveChip` di `lib/core/widgets/common_widgets.dart`
+   tampil selebar layar bila diletakkan langsung di ListView/Column
+   (terbukti di layar Akun: chip "Mode lokal" jadi bar selebar layar).
+   Perbaikan: bungkus `Container` dengan `UnconstrainedBox` rata kiri.
+   `Row` mainAxisSize.min dan `IntrinsicWidth` dicoba dan GAGAL
+   dibuktikan test (kendala ketat memaksa ukuran selebar parent).
+   Ditambah 2 test regresi di `test/redesign_widget_test.dart`.
+   Dampak terukur: hanya `qa-akun.png` (dari 10 golden) dan
+   `akun-v11.png` (dari 9 screenshot) yang berubah.
+2. **Em dash di komentar kode (pembersihan kecil).** 4 em dash di
+   komentar diganti koma/titik (`device_native.dart:37`,
+   `wifi_service.dart:317`, `dashboard_widget_test.dart:59`,
+   `qa_screenshot_test.dart:31`). Non-fungsional.
+3. **Import tidak perlu (lint).** `dart:typed_data` dihapus dari
+   `test/qa_capture_v11_test.dart` setelah analyze melaporkan
+   `unnecessary_import`. Analyze kembali 0 issue.
+4. **Harness tangkap layar (test saja, 2 bug diperbaiki).**
+   `test/qa_capture_v11_test.dart` (baru): tangkapan pertama
+   menggantung karena `toImage()` tidak selesai di zona FakeAsync
+   (diperbaiki dengan `tester.runAsync()`); judul AppBar dan label
+   tombol tetap balok Ahem karena tema menggantikan gaya teks
+   ambient tanpa fontFamily (diperbaiki dengan `temaHarness()` yang
+   menerapkan fontFamily Roboto ke gaya teks tema). Screenshot baru
+   memakai font Roboto asli, bukan Ahem.
+5. **Penyimpangan spesifikasi yang dikonfirmasi (bukan bug):** sel
+   grid dashboard 184 px (spesifikasi min 96, patuh; tidak meluap
+   lagi di 390 px, dibuktikan golden + hitungan manual); kotak digit
+   PIN lebar fleksibel (8x48 px = 440 px melebihi lebar konten
+   350 px, jadi lebar tetap mustahil); chip "Mengisi daya" pakai
+   `battery_charging_full`; skala suhu 20-60 derajat C; tombol muat
+   ulang di AppBar Keamanan; logo Google CustomPainter; judul
+   riwayat "Skor 82 (Baik)" vs contoh spesifikasi "Skor 82, Baik";
+   shimmer skeleton gradasi monokrom (diwajibkan spesifikasi 4.8).
+6. **Catatan kecil (bukan bug):** splash LockGate memakai gaya teks
+   body default, bukan headline 28/700 (splash boot di `main.dart`
+   sudah sesuai); keterangan sel grid dashboard terpotong elipsis
+   di lebar 390 px (sesuai desain, copy spesifikasi).
+
+### 8.4 Screenshot baru
+
+Sembilan berkas di `docs/screenshots/` (780x1688, Roboto asli,
+permukaan 390x844 @2.0). Berkas lama TIDAK ditimpa:
+`dashboard-v11.png`, `wifi-v11.png`, `baterai-v11.png`,
+`penyimpanan-v11.png`, `performa-v11.png`, `keamanan-v11.png`,
+`riwayat-v11.png`, `ai-diagnosis-v11.png`, `akun-v11.png`.
+Golden bertambah dari 7 menjadi 10 (`qa-ai-diagnosis.png`,
+`qa-akun.png`, `qa-akun-login.png`).
+
+### 8.5 Perubahan berkas di ronde ini
+
+| Berkas | Perubahan |
+| --- | --- |
+| `lib/core/widgets/common_widgets.dart` | Perbaikan chip (UnconstrainedBox) + komentar. |
+| `lib/data/native/device_native.dart`, `lib/data/wifi/wifi_service.dart` | Em dash di komentar dibersihkan. |
+| `test/redesign_widget_test.dart` | +2 test regresi chip (16 menjadi 18 test). |
+| `test/qa_screenshot_test.dart` | +3 test golden (AI Diagnosis, Akun, Akun masuk Google) + mock auth. |
+| `test/qa_capture_v11_test.dart` (baru) | Harness tangkap 9 layar, font Roboto asli, gated `QA_CAPTURE=true`. |
+| `test/goldens/qa-ai-diagnosis.png`, `qa-akun.png`, `qa-akun-login.png` (baru) | Golden baru. `qa-akun.png` diregenerasi setelah perbaikan chip. |
+| `test/dashboard_widget_test.dart`, `test/qa_screenshot_test.dart` | Em dash di komentar dibersihkan. |
+| `docs/screenshots/*-v11.png` (baru, 9 berkas) | Screenshot rancang ulang. |
+| `docs/redesign-v11-before-after.md` (baru) | Laporan before/after per layar. |
+| `QA_REPORT.md` | Bagian 8 ini. |
+
+### 8.6 Masih terbuka (hanya bisa dibuktikan di HP fisik)
+
+1. State terisi: dashboard berskor, panel hasil WiFi, tes bertahan
+   selesai + grafik, riwayat berisi, daftar aplikasi Keamanan berisi,
+   Performa termuat.
+2. Logo Google CustomPainter di perangkat nyata.
+3. Render font di perangkat nyata (harness memakai Roboto SDK).
+4. Build APK release (tugas CI; Gradle lokal rusak di VM ini,
+   bukan salah kode).
+5. RLS Supabase baru diverifikasi dari file SQL (temuan lama
+   bagian 6, masih berlaku).

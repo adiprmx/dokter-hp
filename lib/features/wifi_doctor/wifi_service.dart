@@ -314,7 +314,7 @@ class WifiDoctorService {
   ///
   /// Mengembalikan [SustainedTestResult] berisi satu sampel per detik,
   /// atau null bila tidak satu pun sampel berhasil dicatat (tes gagal
-  /// total — jangan tampilkan angka palsu). [onSample] dipanggil tiap
+  /// total. Jangan tampilkan angka palsu). [onSample] dipanggil tiap
   /// detik dengan nomor detik (mulai dari 1) dan kecepatan detik itu.
   /// Bila [cekBerhenti] mengembalikan true, tes berhenti; sampel yang
   /// sudah ada tetap dikembalikan sebagai hasil.

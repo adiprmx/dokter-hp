@@ -41,7 +41,11 @@ void main() {
 
     expect(find.text('Dokter WiFi'), findsOneWidget);
     expect(find.text('Periksa WiFi sekarang'), findsOneWidget);
-    expect(find.text('Belum ada data pemeriksaan'), findsOneWidget);
+    expect(find.text('Belum ada hasil pemeriksaan WiFi'), findsOneWidget);
+    expect(
+      find.text('Hasil dari perangkat ini, bukan angka contoh.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -60,6 +64,39 @@ void main() {
 
     expect(
       find.textContaining('tidak tersambung ke WiFi'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('panel live, tes bertahan, dan panduan tampil sebelum periksa',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(home: WifiDoctorPage(database: database)),
+    );
+    await tester.pump();
+
+    await tester.scrollUntilVisible(find.text('Pantau live'), 200);
+    expect(find.text('Pantau live'), findsOneWidget);
+    // 'Tes bertahan 30 detik' muncul dua kali (judul bagian dan
+    // tombol), jadi gulir ke yang pertama.
+    await tester.scrollUntilVisible(
+      find.text('Tes bertahan 30 detik').first,
+      200,
+    );
+    expect(find.text('Tes bertahan 30 detik'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.text('WiFi turun ke KB/detik? Cek dulu sebelum panik'),
+      200,
+    );
+    expect(
+      find.text('WiFi turun ke KB/detik? Cek dulu sebelum panik'),
+      findsOneWidget,
+    );
+    // Teks panduan verbatim dari docs/panduan-wifi-turun.md.
+    expect(
+      find.text(
+        'Putar video 1080p selama 1 menit sambil memperhatikan angka kecepatan.',
+      ),
       findsOneWidget,
     );
   });

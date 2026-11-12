@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dokter_hp/core/app_config.dart';
 import 'package:dokter_hp/core/theme.dart';
+import 'package:dokter_hp/core/widgets/common_widgets.dart';
 
 /// Layanan diagnosis AI via Supabase Edge Function `ai-diagnose`.
 ///
@@ -45,8 +46,8 @@ class AiDiagnosisService {
   }
 }
 
-/// Layar Diagnosis AI: kirim keluhan + ringkasan data perangkat ke
-/// Edge Function dan tampilkan jawabannya.
+/// Layar Diagnosis AI v1.1.0: kirim keluhan + ringkasan data perangkat
+/// ke Edge Function dan tampilkan jawabannya.
 class AiDiagnosisPage extends StatefulWidget {
   const AiDiagnosisPage({super.key});
 
@@ -75,7 +76,10 @@ class _AiDiagnosisPageState extends State<AiDiagnosisPage> {
     final keluhan = _keluhanController.text.trim();
     if (keluhan.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tulis keluhan dulu.')),
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          content: Text('Tulis keluhan dulu.'),
+        ),
       );
       return;
     }
@@ -99,69 +103,80 @@ class _AiDiagnosisPageState extends State<AiDiagnosisPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Diagnosis AI')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.pagePadding,
+          AppTheme.pagePadding,
+          AppTheme.pagePadding,
+          AppTheme.bottomPadding,
+        ),
         children: [
-          if (!AppConfig.isSupabaseConfigured)
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Mode lokal, belum tersambung ke server. Diagnosis AI '
-                  'membutuhkan server Supabase dan belum bisa dipakai.',
-                ),
-              ),
+          if (!AppConfig.isSupabaseConfigured) ...[
+            const StatusStrip(
+              icon: Icons.cloud_off,
+              text: 'Mode lokal, belum tersambung ke server. Diagnosis '
+                  'AI membutuhkan server Supabase dan belum bisa dipakai.',
             ),
+            const SizedBox(height: 20),
+          ],
+          const Text('Keluhan HP', style: AppTheme.label),
+          const SizedBox(height: 8),
           TextField(
             controller: _keluhanController,
             maxLines: 4,
             decoration: const InputDecoration(
-              labelText: 'Jelaskan keluhan HP',
               hintText: 'Contoh: WiFi lemot padahal sinyal penuh',
             ),
           ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
+          const SizedBox(height: 16),
+          PrimaryButton(
+            label: _memuat ? 'Meminta diagnosis' : 'Minta diagnosis',
+            icon: Icons.psychology,
             onPressed: _memuat ? null : _kirim,
-            icon: const Icon(Icons.psychology),
-            label: Text(_memuat ? 'Meminta diagnosis...' : 'Minta diagnosis'),
           ),
-          if (_memuat)
-            const Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.black12,
-                color: Colors.black,
-              ),
-            ),
-          if (_jawaban != null) ...[
+          if (_memuat) ...[
             const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(_jawaban!),
-              ),
-            ),
-            if (_jawabanGagal) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _memuat ? null : _kirim,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Coba lagi'),
-              ),
-            ],
+            const LinearProgressIndicator(),
             const SizedBox(height: 8),
-            const Text(
-              'Jawaban AI adalah saran, bukan vonis pasti. Cocokkan dengan '
-              'hasil ukur di Dokter WiFi dan dokter lainnya.',
-              style: TextStyle(color: AppTheme.mutedGrey),
+            Text(
+              'Meminta diagnosis...',
+              style: AppTheme.body.copyWith(
+                color: AppTheme.textSecondary,
+              ),
             ),
           ],
-          if (_jawaban == null && !_memuat) ...[
-            const SizedBox(height: 16),
-            const Text(
-              'Tulis keluhan di atas, lalu ketuk "Minta diagnosis".',
-              style: TextStyle(color: AppTheme.mutedGrey),
-            ),
+          if (_jawaban != null) ...[
+            const SizedBox(height: 24),
+            if (_jawabanGagal)
+              ErrorState(
+                title: 'Diagnosis AI gagal',
+                message: _jawaban!.startsWith('Server tidak mengembalikan')
+                    ? _jawaban!
+                    : 'Periksa sambungan internet, lalu coba lagi.',
+                onRetry: _kirim,
+              )
+            else ...[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Saran diagnosis',
+                      style: AppTheme.section,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(_jawaban!, style: AppTheme.body),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const StatusStrip(
+                icon: Icons.info_outline,
+                iconColor: AppTheme.info,
+                text: 'Jawaban AI adalah saran, bukan vonis pasti. '
+                    'Cocokkan dengan hasil ukur di Dokter WiFi dan '
+                    'dokter lainnya.',
+              ),
+            ],
           ],
         ],
       ),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dokter_hp/core/native/device_native.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/core/widgets/common_widgets.dart';
 
-/// Layar Dokter Penyimpanan.
+/// Layar Dokter Penyimpanan v1.1.0.
 ///
 /// Membaca total dan ruang kosong lewat StatFs Android, serta ukuran
 /// cache aplikasi sendiri. Pembersihan hanya menghapus cache aplikasi
@@ -75,26 +76,18 @@ class _StoragePageState extends State<StoragePage> {
     return '$bytes B';
   }
 
+  /// Angka GB saja (tanpa satuan) untuk angka besar meter.
+  String _formatGbAngka(int bytes) {
+    return (bytes / (1024 * 1024 * 1024)).toStringAsFixed(1);
+  }
+
   Future<void> _bersihkanCache() async {
-    final setuju = await showDialog<bool>(
+    final setuju = await showAppConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Bersihkan cache?'),
-        content: const Text(
-          'Hanya file cache aplikasi Dokter HP yang dihapus. '
+      title: 'Bersihkan cache?',
+      content: 'Hanya file cache aplikasi Dokter HP yang dihapus. '
           'Foto, chat, dan file lain tidak disentuh.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Bersihkan'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Bersihkan',
     );
     if (setuju != true) return;
     setState(() => _membersihkan = true);
@@ -103,6 +96,7 @@ class _StoragePageState extends State<StoragePage> {
     setState(() => _membersihkan = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        duration: const Duration(seconds: 3),
         content: Text(
           berhasil
               ? 'Cache berhasil dibersihkan.'
@@ -111,6 +105,14 @@ class _StoragePageState extends State<StoragePage> {
       ),
     );
     await _muat();
+  }
+
+  void _muatUlang() {
+    setState(() {
+      _memuat = true;
+      _error = false;
+    });
+    _muat();
   }
 
   @override
@@ -125,95 +127,117 @@ class _StoragePageState extends State<StoragePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Dokter Penyimpanan')),
       body: _memuat
-          ? const LoadingState(label: 'Memuat data penyimpanan...')
+          ? const LoadingSkeleton(
+              label: 'Memuat data penyimpanan...',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBlock(width: 160, height: 56),
+                  SizedBox(height: 12),
+                  SkeletonBlock(height: 8),
+                  SizedBox(height: 20),
+                  SkeletonBlock(height: 15),
+                  SizedBox(height: 12),
+                  SkeletonBlock(height: 15),
+                  SizedBox(height: 12),
+                  SkeletonBlock(height: 15),
+                ],
+              ),
+            )
           : _error
-              ? ErrorState(
-                  title: 'Data penyimpanan tidak bisa dibaca',
-                  message: 'Perangkat tidak memberikan info penyimpanan '
-                      'saat ini. Coba muat ulang.',
-                  onRetry: () {
-                    setState(() {
-                      _memuat = true;
-                      _error = false;
-                    });
-                    _muat();
-                  },
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppTheme.pagePadding),
+                  child: ErrorState(
+                    title: 'Data penyimpanan tidak bisa dibaca',
+                    message: 'Perangkat tidak memberikan info penyimpanan '
+                        'saat ini. Coba muat ulang.',
+                    onRetry: _muatUlang,
+                  ),
                 )
               : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (penyimpanan == null)
-                  const EmptyState(
-                    icon: Icons.storage,
-                    title: 'Data penyimpanan tidak tersedia',
-                    message: 'Perangkat tidak memberikan info penyimpanan '
-                        'saat ini.',
-                  )
-                else
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Penyimpanan internal',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 12),
-                          if (persenTerpakai != null)
-                            LinearProgressIndicator(
-                              value: persenTerpakai,
-                              backgroundColor: Colors.black12,
-                              color: Colors.black,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.pagePadding,
+                    AppTheme.pagePadding,
+                    AppTheme.pagePadding,
+                    AppTheme.bottomPadding,
+                  ),
+                  children: [
+                    if (penyimpanan == null)
+                      const EmptyState(
+                        icon: Icons.storage,
+                        title: 'Data penyimpanan tidak tersedia',
+                        message: 'Perangkat tidak memberikan info '
+                            'penyimpanan saat ini. Tombol bersihkan cache '
+                            'tetap bisa dipakai.',
+                      )
+                    else
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            MeterGauge(
+                              fraction: persenTerpakai,
+                              displayValue:
+                                  _formatGbAngka(penyimpanan.freeBytes),
+                              displayUnit: 'GB kosong',
+                              animatedNumber: penyimpanan.freeBytes /
+                                  (1024 * 1024 * 1024),
+                              formatNumber: (nilai) =>
+                                  nilai.toStringAsFixed(1),
+                              scaleMinLabel: '0',
+                              scaleMaxLabel:
+                                  _formatBytes(penyimpanan.totalBytes),
+                              semanticsLabel:
+                                  '${_formatBytes(penyimpanan.freeBytes)} '
+                                  'kosong dari '
+                                  '${_formatBytes(penyimpanan.totalBytes)}',
                             ),
-                          const SizedBox(height: 12),
-                          InfoRow(
-                            label: 'Total',
-                            value: _formatBytes(penyimpanan.totalBytes),
-                          ),
-                          InfoRow(
-                            label: 'Terpakai',
-                            value: _formatBytes(
-                              penyimpanan.totalBytes - penyimpanan.freeBytes,
+                            const SizedBox(height: 20),
+                            StatRow(
+                              label: 'Total',
+                              value: _formatBytes(penyimpanan.totalBytes),
                             ),
-                          ),
-                          InfoRow(
-                            label: 'Kosong',
-                            value: _formatBytes(penyimpanan.freeBytes),
-                          ),
-                          InfoRow(
-                            label: 'Cache aplikasi ini',
-                            value: _cacheBytes == null
-                                ? 'Tidak tersedia'
-                                : _formatBytes(_cacheBytes!),
-                          ),
-                        ],
+                            const SizedBox(height: 12),
+                            StatRow(
+                              label: 'Terpakai',
+                              value: _formatBytes(
+                                penyimpanan.totalBytes -
+                                    penyimpanan.freeBytes,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    const SizedBox(height: 20),
+                    StatRow(
+                      label: 'Cache aplikasi ini',
+                      value: _cacheBytes == null
+                          ? 'Tidak tersedia'
+                          : _formatBytes(_cacheBytes!),
+                      valueColor: _cacheBytes == null
+                          ? AppTheme.textSecondary
+                          : null,
                     ),
-                  ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _membersihkan ? null : _bersihkanCache,
-                  icon: const Icon(Icons.cleaning_services),
-                  label: Text(
-                    _membersihkan ? 'Membersihkan...' : 'Bersihkan cache',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Catatan: aplikasi ini tidak menghapus file besar, '
-                      'foto, video, atau chat secara otomatis. Bila ruang '
-                      'hampir penuh, hapus file dari aplikasi Galeri atau '
-                      'File secara manual setelah memeriksa isinya.',
+                    const SizedBox(height: 12),
+                    PrimaryButton(
+                      label: _membersihkan
+                          ? 'Membersihkan...'
+                          : 'Bersihkan cache',
+                      icon: Icons.cleaning_services,
+                      onPressed:
+                          _membersihkan ? null : _bersihkanCache,
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    const StatusStrip(
+                      icon: Icons.info_outline,
+                      iconColor: AppTheme.info,
+                      text: 'Aplikasi ini tidak menghapus file besar, '
+                          'foto, video, atau chat secara otomatis. Hapus '
+                          'file dari Galeri atau File secara manual '
+                          'setelah memeriksa isinya.',
+                    ),
+                  ],
                 ),
-              ],
-            ),
     );
   }
 }

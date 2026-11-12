@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/core/widgets/common_widgets.dart';
 
-/// Layar Dokter Baterai.
+/// Layar Dokter Baterai v1.1.0.
 ///
 /// Menampilkan level, status, dan mode hemat daya dari Battery API.
 /// Daftar aplikasi boros hanya ditampilkan bila datanya tersedia dari
@@ -69,6 +70,7 @@ class _BatteryPageState extends State<BatteryPage> {
     }
   }
 
+  /// Label singkat status untuk chip di samping angka.
   String _labelStatus(BatteryState state) {
     switch (state) {
       case BatteryState.full:
@@ -76,11 +78,41 @@ class _BatteryPageState extends State<BatteryPage> {
       case BatteryState.charging:
         return 'Mengisi daya';
       case BatteryState.discharging:
-        return 'Dipakai (tidak mengisi daya)';
+        return 'Dipakai';
       case BatteryState.connectedNotCharging:
-        return 'Tersambung, tidak mengisi daya';
+        return 'Tersambung';
       case BatteryState.unknown:
         return 'Tidak diketahui';
+    }
+  }
+
+  StatusTone _toneStatus(BatteryState state) {
+    switch (state) {
+      case BatteryState.full:
+        return StatusTone.success;
+      case BatteryState.charging:
+        return StatusTone.info;
+      case BatteryState.discharging:
+        return StatusTone.neutral;
+      case BatteryState.connectedNotCharging:
+        return StatusTone.warning;
+      case BatteryState.unknown:
+        return StatusTone.neutral;
+    }
+  }
+
+  IconData _ikonStatus(BatteryState state) {
+    switch (state) {
+      case BatteryState.full:
+        return Icons.check;
+      case BatteryState.charging:
+        return Icons.battery_charging_full;
+      case BatteryState.discharging:
+        return Icons.battery_std;
+      case BatteryState.connectedNotCharging:
+        return Icons.power;
+      case BatteryState.unknown:
+        return Icons.help_outline;
     }
   }
 
@@ -96,8 +128,16 @@ class _BatteryPageState extends State<BatteryPage> {
     final jam = _level! / 10;
     final jamBulat = jam.floor();
     final menit = ((jam - jamBulat) * 60).round();
-    return 'Perkiraan kasar sekitar $jamBulat jam $menit menit, '
-        'bukan hasil ukur.';
+    return 'Perkiraan sekitar $jamBulat jam $menit menit. '
+        'Bukan hasil ukur.';
+  }
+
+  void _muatUlang() {
+    setState(() {
+      _level = null;
+      _error = false;
+    });
+    _muat();
   }
 
   @override
@@ -109,121 +149,131 @@ class _BatteryPageState extends State<BatteryPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Muat ulang',
-            onPressed: () {
-              setState(() {
-                _level = null;
-                _error = false;
-              });
-              _muat();
-            },
+            onPressed: _muatUlang,
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_error)
-            ErrorState(
-              title: 'Data baterai tidak bisa dibaca',
-              message: 'Perangkat tidak memberikan data baterai saat ini. '
-                  'Coba muat ulang.',
-              onRetry: () {
-                setState(() {
-                  _level = null;
-                  _error = false;
-                });
-                _muat();
-              },
+      body: _error
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.pagePadding),
+              child: ErrorState(
+                title: 'Data baterai tidak bisa dibaca',
+                message: 'Perangkat tidak memberikan data baterai saat '
+                    'ini. Coba muat ulang.',
+                onRetry: _muatUlang,
+              ),
             )
-          else if (_level == null)
-            const LoadingState(label: 'Memuat data baterai...')
-          else
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+          : _level == null
+              ? const LoadingSkeleton(
+                  label: 'Memuat data baterai...',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonBlock(width: 120, height: 56),
+                      SizedBox(height: 12),
+                      SkeletonBlock(height: 8),
+                      SizedBox(height: 20),
+                      SkeletonBlock(height: 15),
+                      SizedBox(height: 12),
+                      SkeletonBlock(height: 15),
+                    ],
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.pagePadding,
+                    AppTheme.pagePadding,
+                    AppTheme.pagePadding,
+                    AppTheme.bottomPadding,
+                  ),
                   children: [
-                    Text(
-                      '$_level%',
-                      style: Theme.of(context)
-                          .textTheme
-                          .displayMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          MeterGauge(
+                            fraction: _level! / 100,
+                            displayValue: '$_level',
+                            displayUnit: '%',
+                            animatedNumber: _level!.toDouble(),
+                            formatNumber: (nilai) => '${nilai.round()}',
+                            chip: _state == null
+                                ? null
+                                : StatusChip(
+                                    label: _labelStatus(_state!),
+                                    icon: _ikonStatus(_state!),
+                                    tone: _toneStatus(_state!),
+                                  ),
+                            semanticsLabel: 'Level baterai $_level persen'
+                                '${_state == null ? '' : ', ${_labelStatus(_state!)}'}',
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _estimasiWaktuPakai(),
+                            style: AppTheme.body.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: _level! / 100,
-                      backgroundColor: Colors.black12,
-                      color: Colors.black,
-                    ),
-                    const SizedBox(height: 16),
-                    InfoRow(
-                      label: 'Status',
-                      value: _state == null
-                          ? 'Tidak tersedia'
-                          : _labelStatus(_state!),
-                    ),
-                    InfoRow(
+                    const SizedBox(height: 20),
+                    StatRow(
                       label: 'Mode hemat daya',
                       value: _hematDaya == null
                           ? 'Tidak tersedia'
                           : (_hematDaya! ? 'Aktif' : 'Tidak aktif'),
+                      valueColor: _hematDaya == null
+                          ? AppTheme.textSecondary
+                          : null,
                     ),
-                    InfoRow(
-                      label: 'Estimasi waktu pakai',
-                      value: _estimasiWaktuPakai(),
+                    const SectionHeader(title: 'Tips merawat baterai'),
+                    const _BarisTips(
+                      icon: Icons.thermostat,
+                      teks: 'Hindari HP panas saat mengisi daya.',
+                    ),
+                    const SizedBox(height: 12),
+                    const _BarisTips(
+                      icon: Icons.battery_saver,
+                      teks: 'Aktifkan mode hemat daya bila baterai '
+                          'di bawah 20%.',
+                    ),
+                    const SizedBox(height: 12),
+                    const _BarisTips(
+                      icon: Icons.brightness_6,
+                      teks: 'Kurangi kecerahan layar dan matikan '
+                          'Bluetooth bila tidak dipakai.',
+                    ),
+                    const SizedBox(height: 20),
+                    const StatusStrip(
+                      icon: Icons.info_outline,
+                      iconColor: AppTheme.info,
+                      text: 'Android tidak membuka data pemakaian '
+                          'baterai per aplikasi. Buka Pengaturan, '
+                          'Baterai, Penggunaan baterai untuk melihat '
+                          'aplikasi yang paling banyak memakai daya.',
                     ),
                   ],
                 ),
-              ),
-            ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Aplikasi boros baterai',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Data pemakaian baterai per aplikasi tidak dibuka oleh '
-                    'Android untuk aplikasi pihak ketiga, jadi daftar ini '
-                    'tidak bisa ditampilkan. Buka Pengaturan > Baterai > '
-                    'Penggunaan baterai untuk melihat aplikasi yang paling '
-                    'banyak memakai daya.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tips merawat baterai',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '• Hindari HP panas saat mengisi daya.\n'
-                    '• Aktifkan mode hemat daya bila baterai di bawah 20%.\n'
-                    '• Kurangi kecerahan layar dan matikan Bluetooth bila '
-                    'tidak dipakai.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    );
+  }
+}
+
+class _BarisTips extends StatelessWidget {
+  const _BarisTips({required this.icon, required this.teks});
+
+  final IconData icon;
+  final String teks;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: AppTheme.textSecondary),
+        const SizedBox(width: 12),
+        Expanded(child: Text(teks, style: AppTheme.body)),
+      ],
     );
   }
 }

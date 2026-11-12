@@ -34,7 +34,7 @@ class DeviceNative {
   }
 
   /// SSID WiFi yang sedang tersambung (tanpa tanda kutip). Null bila
-  /// Android menahan namanya — umumnya karena izin lokasi belum
+  /// Android menahan namanya, umumnya karena izin lokasi belum
   /// diberikan atau layanan lokasi mati.
   static Future<String?> wifiSsid() async {
     try {

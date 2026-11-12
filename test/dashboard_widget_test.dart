@@ -20,16 +20,19 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: DashboardPage(database: database)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Dokter HP'), findsWidgets);
-    expect(find.text('Belum ada data pemeriksaan'), findsOneWidget);
+    expect(find.text('Belum ada skor kesehatan'), findsOneWidget);
     expect(find.text('Diagnosis satu ketuk'), findsOneWidget);
-    expect(find.textContaining('Mode lokal, belum tersambung ke server'),
-        findsOneWidget);
+    expect(
+      find.text('Mode lokal. Diagnosis memakai data perangkat ini.'),
+      findsOneWidget,
+    );
     expect(find.text('Dokter WiFi'), findsOneWidget);
+    // Sel grid di bawah lipatan baru dibangun setelah digulir.
+    await tester.scrollUntilVisible(find.text('Dokter Baterai'), 200);
     expect(find.text('Dokter Baterai'), findsOneWidget);
-    // Kartu di bawah lipatan baru dibangun ListView setelah digulir.
     await tester.scrollUntilVisible(
       find.text('Dokter Penyimpanan'),
       200,
@@ -48,12 +51,12 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: DashboardPage(database: database)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Diagnosis satu ketuk'));
     await tester.pump();
     // Diagnosis selesai (dengan data kosong di lingkungan tes, hasilnya
-    // gagal jujur) atau masih berjalan — yang penting tidak crash.
+    // gagal jujur) atau masih berjalan. Yang penting tidak crash.
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('Dokter HP'), findsWidgets);
   });
@@ -62,12 +65,39 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: DashboardPage(database: database)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Dokter WiFi'));
     await tester.pumpAndSettle();
 
     expect(find.text('Periksa WiFi sekarang'), findsOneWidget);
-    expect(find.text('Belum ada data pemeriksaan'), findsOneWidget);
+    expect(find.text('Belum ada hasil pemeriksaan WiFi'), findsOneWidget);
+  });
+
+  testWidgets('riwayat tersimpan tampil di kelompok pemeriksaan terakhir',
+      (tester) async {
+    final sekarang = DateTime.now();
+    await database.simpanHealthCheck(
+      HealthChecksCompanion.insert(
+        id: 'hc-uji',
+        score: 82,
+        category: 'baik',
+        createdAt: sekarang,
+        updatedAt: sekarang,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: DashboardPage(database: database)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Pemeriksaan terakhir'),
+      200,
+    );
+    expect(find.text('Pemeriksaan terakhir'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Skor 82 (Baik)'), 200);
+    expect(find.text('Skor 82 (Baik)'), findsOneWidget);
   });
 }

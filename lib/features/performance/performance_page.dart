@@ -3,9 +3,10 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:dokter_hp/core/native/device_native.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/core/widgets/common_widgets.dart';
 
-/// Layar Dokter Performa: RAM, CPU, suhu, dan info perangkat.
+/// Layar Dokter Performa v1.1.0: RAM, CPU, suhu, dan info perangkat.
 ///
 /// RAM dibaca dari ActivityManager. CPU dibaca dari /proc/stat (dua
 /// sampel). Suhu dibaca dari sensor thermal bila file sistemnya bisa
@@ -142,6 +143,14 @@ class _PerformancePageState extends State<PerformancePage> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
   }
 
+  void _muatUlang() {
+    setState(() {
+      _memuat = true;
+      _error = false;
+    });
+    _muat();
+  }
+
   @override
   Widget build(BuildContext context) {
     final memori = _memori;
@@ -150,6 +159,10 @@ class _PerformancePageState extends State<PerformancePage> {
       persenRamTerpakai =
           (memori.totalBytes - memori.freeBytes) / memori.totalBytes;
     }
+    // Skala suhu 20 sampai 60 derajat untuk posisi penanda meter.
+    final fraksiSuhu = _suhuCelsius == null
+        ? null
+        : ((_suhuCelsius! - 20) / 40).clamp(0.0, 1.0);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dokter Performa'),
@@ -157,124 +170,162 @@ class _PerformancePageState extends State<PerformancePage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Muat ulang',
-            onPressed: () {
-              setState(() => _memuat = true);
-              _muat();
-            },
+            onPressed: _muatUlang,
           ),
         ],
       ),
       body: _memuat
-          ? const LoadingState(label: 'Memuat data performa...')
+          ? const LoadingSkeleton(
+              label: 'Memuat data performa...',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBlock(width: 80, height: 13),
+                  SizedBox(height: 8),
+                  SkeletonBlock(width: 100, height: 28),
+                  SizedBox(height: 12),
+                  SkeletonBlock(height: 6),
+                  SizedBox(height: 24),
+                  SkeletonBlock(width: 80, height: 13),
+                  SizedBox(height: 8),
+                  SkeletonBlock(width: 100, height: 28),
+                  SizedBox(height: 12),
+                  SkeletonBlock(height: 6),
+                  SizedBox(height: 24),
+                  SkeletonBlock(width: 80, height: 13),
+                  SizedBox(height: 8),
+                  SkeletonBlock(width: 100, height: 28),
+                  SizedBox(height: 12),
+                  SkeletonBlock(height: 6),
+                ],
+              ),
+            )
           : _error
-              ? ErrorState(
-                  title: 'Data performa tidak bisa dibaca',
-                  message: 'Perangkat tidak memberikan data performa saat '
-                      'ini. Coba muat ulang.',
-                  onRetry: () {
-                    setState(() {
-                      _memuat = true;
-                      _error = false;
-                    });
-                    _muat();
-                  },
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppTheme.pagePadding),
+                  child: ErrorState(
+                    title: 'Data performa tidak bisa dibaca',
+                    message: 'Perangkat tidak memberikan data performa '
+                        'saat ini. Coba muat ulang.',
+                    onRetry: _muatUlang,
+                  ),
                 )
               : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Memori (RAM)',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 12),
-                        if (persenRamTerpakai != null)
-                          LinearProgressIndicator(
-                            value: persenRamTerpakai,
-                            backgroundColor: Colors.black12,
-                            color: Colors.black,
-                          ),
-                        const SizedBox(height: 12),
-                        InfoRow(
-                          label: 'Total RAM',
-                          value: memori == null
-                              ? 'Tidak tersedia'
-                              : _formatBytes(memori.totalBytes),
-                        ),
-                        InfoRow(
-                          label: 'RAM kosong',
-                          value: memori == null
-                              ? 'Tidak tersedia'
-                              : _formatBytes(memori.freeBytes),
-                        ),
-                        InfoRow(
-                          label: 'Pemakaian CPU',
-                          value: _cpuPersen == null
-                              ? 'Tidak tersedia'
-                              : '${_cpuPersen!.toStringAsFixed(0)}%',
-                        ),
-                        InfoRow(
-                          label: 'Suhu perangkat',
-                          value: _suhuCelsius == null
-                              ? 'Tidak tersedia di perangkat ini'
-                              : '${_suhuCelsius!.toStringAsFixed(1)}°C',
-                        ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.pagePadding,
+                    AppTheme.pagePadding,
+                    AppTheme.pagePadding,
+                    AppTheme.bottomPadding,
                   ),
-                ),
-                const SizedBox(height: 16),
-                if (_infoPerangkat != null)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
+                  children: [
+                    AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Perangkat',
-                            style: Theme.of(context).textTheme.titleMedium,
+                          MeterGauge(
+                            size: MeterSize.compact,
+                            label: 'RAM kosong',
+                            fraction: persenRamTerpakai,
+                            displayValue: memori == null
+                                ? ''
+                                : (memori.freeBytes /
+                                        (1024 * 1024 * 1024))
+                                    .toStringAsFixed(1),
+                            displayUnit: 'GB',
+                            emptyText: 'Tidak tersedia',
+                            animatedNumber: memori == null
+                                ? null
+                                : memori.freeBytes /
+                                    (1024 * 1024 * 1024),
+                            formatNumber: (nilai) =>
+                                nilai.toStringAsFixed(1),
+                            scaleMinLabel: '0',
+                            scaleMaxLabel: memori == null
+                                ? ''
+                                : _formatBytes(memori.totalBytes),
+                            semanticsLabel: memori == null
+                                ? 'RAM kosong tidak tersedia'
+                                : 'RAM kosong '
+                                    '${_formatBytes(memori.freeBytes)} '
+                                    'dari ${_formatBytes(memori.totalBytes)}',
                           ),
-                          const SizedBox(height: 8),
-                          InfoRow(
-                            label: 'Merek / model',
-                            value:
-                                '${_infoPerangkat!.brand} ${_infoPerangkat!.model}',
+                          const SizedBox(height: 24),
+                          MeterGauge(
+                            size: MeterSize.compact,
+                            label: 'Pemakaian CPU',
+                            fraction: _cpuPersen == null
+                                ? null
+                                : _cpuPersen! / 100,
+                            displayValue: _cpuPersen == null
+                                ? ''
+                                : _cpuPersen!.toStringAsFixed(0),
+                            displayUnit: '%',
+                            emptyText: 'Tidak tersedia',
+                            animatedNumber: _cpuPersen,
+                            formatNumber: (nilai) =>
+                                nilai.toStringAsFixed(0),
+                            semanticsLabel: _cpuPersen == null
+                                ? 'Pemakaian CPU tidak tersedia'
+                                : 'Pemakaian CPU '
+                                    '${_cpuPersen!.toStringAsFixed(0)} persen',
                           ),
-                          InfoRow(
-                            label: 'Android',
-                            value:
-                                'Android ${_infoPerangkat!.version.release} '
-                                '(SDK ${_infoPerangkat!.version.sdkInt})',
-                          ),
-                          InfoRow(
-                            label: 'Prosesor',
-                            value: _infoPerangkat!.hardware,
+                          const SizedBox(height: 24),
+                          MeterGauge(
+                            size: MeterSize.compact,
+                            label: 'Suhu perangkat',
+                            fraction: fraksiSuhu,
+                            displayValue: _suhuCelsius == null
+                                ? ''
+                                : _suhuCelsius!.toStringAsFixed(1),
+                            displayUnit: '°C',
+                            emptyText: 'Tidak tersedia di perangkat ini',
+                            animatedNumber: _suhuCelsius,
+                            formatNumber: (nilai) =>
+                                nilai.toStringAsFixed(1),
+                            scaleMinLabel: '20°',
+                            scaleMaxLabel: '60°',
+                            semanticsLabel: _suhuCelsius == null
+                                ? 'Suhu perangkat tidak tersedia '
+                                    'di perangkat ini'
+                                : 'Suhu perangkat '
+                                    '${_suhuCelsius!.toStringAsFixed(1)} '
+                                    'derajat Celsius',
                           ),
                         ],
                       ),
                     ),
-                  ),
-                const SizedBox(height: 16),
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Tutup aplikasi latar: Android tidak mengizinkan '
-                      'aplikasi pihak ketiga menutup aplikasi lain. '
-                      'Untuk mengurangi beban, buka layar aplikasi '
-                      'terakhir lalu geser aplikasi yang tidak dipakai, '
-                      'atau mulai ulang HP bila terasa berat.',
+                    if (_infoPerangkat != null) ...[
+                      const SectionHeader(title: 'Perangkat'),
+                      StatRow(
+                        label: 'Merek / model',
+                        value: '${_infoPerangkat!.brand} '
+                            '${_infoPerangkat!.model}',
+                      ),
+                      const SizedBox(height: 12),
+                      StatRow(
+                        label: 'Android',
+                        value: 'Android '
+                            '${_infoPerangkat!.version.release} '
+                            '(SDK ${_infoPerangkat!.version.sdkInt})',
+                      ),
+                      const SizedBox(height: 12),
+                      StatRow(
+                        label: 'Prosesor',
+                        value: _infoPerangkat!.hardware,
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    const StatusStrip(
+                      icon: Icons.info_outline,
+                      iconColor: AppTheme.info,
+                      text: 'Android tidak mengizinkan aplikasi pihak '
+                          'ketiga menutup aplikasi lain. Buka layar '
+                          'aplikasi terakhir lalu geser aplikasi yang '
+                          'tidak dipakai, atau mulai ulang HP bila '
+                          'terasa berat.',
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
     );
   }
 }

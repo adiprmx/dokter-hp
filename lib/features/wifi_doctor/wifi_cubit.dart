@@ -26,6 +26,7 @@ class WifiState {
     this.sustainedStatus = SustainedStatus.tidakAda,
     this.sustainedDetik = 0,
     this.sustainedSampelTerakhir,
+    this.sustainedSampelBerjalan = const [],
     this.sustainedHasil,
     this.sustainedPesan = '',
   });
@@ -53,6 +54,11 @@ class WifiState {
   /// Sampel kecepatan terakhir selama tes bertahan berjalan.
   final double? sustainedSampelTerakhir;
 
+  /// Sampel kecepatan yang sudah terkumpul selama tes bertahan
+  /// berjalan, agar grafik tumbuh satu batang tiap detik
+  /// (spesifikasi 6.2). Dikosongkan saat tes baru dimulai.
+  final List<double> sustainedSampelBerjalan;
+
   final SustainedTestResult? sustainedHasil;
 
   /// Pesan bila tes bertahan gagal.
@@ -69,6 +75,7 @@ class WifiState {
     SustainedStatus? sustainedStatus,
     int? sustainedDetik,
     double? sustainedSampelTerakhir,
+    List<double>? sustainedSampelBerjalan,
     SustainedTestResult? sustainedHasil,
     String? sustainedPesan,
   }) {
@@ -84,6 +91,8 @@ class WifiState {
       sustainedDetik: sustainedDetik ?? this.sustainedDetik,
       sustainedSampelTerakhir:
           sustainedSampelTerakhir ?? this.sustainedSampelTerakhir,
+      sustainedSampelBerjalan:
+          sustainedSampelBerjalan ?? this.sustainedSampelBerjalan,
       sustainedHasil: sustainedHasil ?? this.sustainedHasil,
       sustainedPesan: sustainedPesan ?? this.sustainedPesan,
     );
@@ -305,6 +314,10 @@ class WifiCubit extends Cubit<WifiState> {
           state.copyWith(
             sustainedDetik: detik,
             sustainedSampelTerakhir: kbps,
+            sustainedSampelBerjalan: [
+              ...state.sustainedSampelBerjalan,
+              kbps,
+            ],
           ),
         );
       },

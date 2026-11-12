@@ -16,6 +16,8 @@ class DashboardState {
     this.skor,
     this.pesan = '',
     this.riwayatTerakhir = const [],
+    this.wifiTerakhir,
+    this.riwayatDimuat = false,
   });
 
   final DiagnosisStatus status;
@@ -24,12 +26,22 @@ class DashboardState {
   final String pesan;
   final List<HealthCheck> riwayatTerakhir;
 
+  /// Laporan WiFi terakhir, untuk baris status di kartu unggulan
+  /// Dokter WiFi di dashboard (spesifikasi 6.1).
+  final WifiReport? wifiTerakhir;
+
+  /// True setelah pemuatan riwayat awal selesai (berhasil atau gagal):
+  /// dashboard menampilkan skeleton sampai flag ini true.
+  final bool riwayatDimuat;
+
   DashboardState copyWith({
     DiagnosisStatus? status,
     String? tahap,
     HealthScoreResult? skor,
     String? pesan,
     List<HealthCheck>? riwayatTerakhir,
+    WifiReport? wifiTerakhir,
+    bool? riwayatDimuat,
   }) {
     return DashboardState(
       status: status ?? this.status,
@@ -37,6 +49,8 @@ class DashboardState {
       skor: skor ?? this.skor,
       pesan: pesan ?? this.pesan,
       riwayatTerakhir: riwayatTerakhir ?? this.riwayatTerakhir,
+      wifiTerakhir: wifiTerakhir ?? this.wifiTerakhir,
+      riwayatDimuat: riwayatDimuat ?? this.riwayatDimuat,
     );
   }
 }
@@ -55,9 +69,17 @@ class DashboardCubit extends Cubit<DashboardState> {
   Future<void> muatRiwayat() async {
     try {
       final riwayat = await _database.healthChecksAktif();
-      emit(state.copyWith(riwayatTerakhir: riwayat.take(3).toList()));
+      final wifi = await _database.wifiReportsAktif();
+      emit(
+        state.copyWith(
+          riwayatTerakhir: riwayat.take(3).toList(),
+          wifiTerakhir: wifi.isEmpty ? null : wifi.first,
+          riwayatDimuat: true,
+        ),
+      );
     } catch (_) {
       // Riwayat gagal dimuat, dashboard tetap tampil tanpa riwayat.
+      emit(state.copyWith(riwayatDimuat: true));
     }
   }
 

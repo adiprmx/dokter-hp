@@ -1,9 +1,9 @@
 # PRODUCT.md: Dokter HP
 
-> **Dokumen ini adalah spesifikasi produk (PRD) Dokter HP v1.0.0.**
-> Bahasa: Bahasa Indonesia. Status: v1.0.0 selesai. Audit desain
-> dan tulisan 11 November 2026 sudah diterapkan, `flutter analyze`
-> bersih dan `flutter test` hijau (50/50, terverifikasi 11 November 2026).
+> **Dokumen ini adalah spesifikasi produk (PRD) Dokter HP v1.1.0.**
+> Bahasa: Bahasa Indonesia. Status: v1.1.0 selesai. Rancang ulang
+> UI/UX 12 November 2026 sudah diterapkan, `flutter analyze`
+> bersih dan `flutter test` hijau (98/98, terverifikasi 12 November 2026).
 
 ---
 

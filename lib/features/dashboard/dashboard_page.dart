@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dokter_hp/core/app_config.dart';
-import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/core/health_score.dart';
+import 'package:dokter_hp/core/theme.dart';
 import 'package:dokter_hp/core/widgets/common_widgets.dart';
 import 'package:dokter_hp/data/local/app_database.dart';
 import 'package:dokter_hp/features/ai_diagnosis/ai_diagnosis.dart';
@@ -15,7 +15,9 @@ import 'package:dokter_hp/features/security/security_page.dart';
 import 'package:dokter_hp/features/storage/storage_page.dart';
 import 'package:dokter_hp/features/wifi_doctor/wifi_doctor_page.dart';
 
-/// Dashboard utama: skor kesehatan, diagnosis satu ketuk, dan kartu dokter.
+/// Dashboard utama v1.1.0: skor kesehatan dengan meter strip,
+/// Dokter WiFi sebagai unggulan, grid lima dokter lain, dan tiga
+/// pemeriksaan terakhir.
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key, required this.database});
 
@@ -44,181 +46,432 @@ class _DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dokter HP'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: 'Riwayat pemeriksaan',
-            onPressed: () => _buka(
-              context,
-              HistoryPage(database: database),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            tooltip: 'Akun dan keamanan',
-            onPressed: () => _buka(context, const AuthPage()),
-          ),
-        ],
-      ),
       body: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (!AppConfig.isSupabaseConfigured)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Icon(Icons.cloud_off),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Mode lokal, belum tersambung ke server. '
-                            'Semua diagnosis memakai data perangkat ini.',
-                          ),
-                        ),
-                      ],
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar.large(
+                title: const Text('Dokter HP', style: AppTheme.headline),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.history),
+                    tooltip: 'Riwayat pemeriksaan',
+                    onPressed: () => _buka(
+                      context,
+                      HistoryPage(database: database),
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.person),
+                    tooltip: 'Akun dan keamanan',
+                    onPressed: () => _buka(context, const AuthPage()),
+                  ),
+                ],
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.pagePadding,
                 ),
-              const SizedBox(height: 8),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      if (state.skor != null)
-                        ScoreRing(
-                          score: state.skor!.score,
-                          label: state.skor!.category.label,
-                        )
-                      else
-                        const EmptyState(
-                          icon: Icons.health_and_safety,
-                          title: 'Belum ada data pemeriksaan',
-                          message: 'Ketuk "Diagnosis satu ketuk" untuk '
-                              'memeriksa kondisi HP ini.',
-                        ),
-                      const SizedBox(height: 16),
-                      if (state.status == DiagnosisStatus.berjalan)
-                        const LinearProgressIndicator(
-                          backgroundColor: Colors.black12,
-                          color: Colors.black,
-                        ),
-                      if (state.tahap.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(state.tahap),
-                        ),
-                      if (state.status == DiagnosisStatus.gagal)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: ErrorState(
-                            title: 'Diagnosis gagal',
-                            message: state.pesan,
-                            onRetry: () => context
-                                .read<DashboardCubit>()
-                                .jalankanDiagnosis(),
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                      FilledButton.icon(
-                        onPressed: state.status == DiagnosisStatus.berjalan
-                            ? null
-                            : () => context
-                                .read<DashboardCubit>()
-                                .jalankanDiagnosis(),
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Diagnosis satu ketuk'),
+                sliver: SliverList.list(
+                  children: [
+                    if (!AppConfig.isSupabaseConfigured) ...[
+                      const StatusStrip(
+                        icon: Icons.cloud_off,
+                        text: 'Mode lokal. Diagnosis memakai data '
+                            'perangkat ini.',
                       ),
-                      if (state.skor != null) ...[
-                        const SizedBox(height: 16),
-                        const Divider(),
-                        for (final entri in state.skor!.details.entries)
-                          InfoRow(label: entri.key, value: entri.value),
-                      ],
+                      const SizedBox(height: 20),
                     ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DoctorCard(
-                icon: Icons.wifi,
-                title: 'Dokter WiFi',
-                description:
-                    'Ukur kecepatan, latensi, sinyal, dan dapatkan perbaikan.',
-                onTap: () => _buka(
-                  context,
-                  WifiDoctorPage(database: database),
-                ),
-              ),
-              DoctorCard(
-                icon: Icons.battery_full,
-                title: 'Dokter Baterai',
-                description: 'Kesehatan baterai dan estimasi waktu pakai.',
-                onTap: () => _buka(context, const BatteryPage()),
-              ),
-              DoctorCard(
-                icon: Icons.storage,
-                title: 'Dokter Penyimpanan',
-                description: 'Lihat ruang kosong dan bersihkan cache '
-                    'dengan aman.',
-                onTap: () => _buka(context, const StoragePage()),
-              ),
-              DoctorCard(
-                icon: Icons.speed,
-                title: 'Dokter Performa',
-                description: 'RAM, CPU, dan suhu perangkat.',
-                onTap: () => _buka(context, const PerformancePage()),
-              ),
-              DoctorCard(
-                icon: Icons.security,
-                title: 'Dokter Keamanan',
-                description: 'Izin aplikasi yang perlu ditinjau.',
-                onTap: () => _buka(context, const SecurityPage()),
-              ),
-              DoctorCard(
-                icon: Icons.psychology,
-                title: 'Diagnosis AI',
-                description:
-                    'Jelaskan keluhan HP dan dapatkan saran diagnosis.',
-                onTap: () => _buka(context, const AiDiagnosisPage()),
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  'Dokter HP v${AppConfig.appVersion}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.mutedGrey,
+                    if (!state.riwayatDimuat)
+                      const _SkeletonDashboard()
+                    else
+                      _PanelSkor(
+                        state: state,
+                        onDiagnosis: () => context
+                            .read<DashboardCubit>()
+                            .jalankanDiagnosis(),
                       ),
-                  textAlign: TextAlign.center,
+                    const SectionHeader(title: 'Dokter'),
+                    _BarisUnggulanWifi(
+                      wifiTerakhir: state.wifiTerakhir,
+                      onTap: () => _buka(
+                        context,
+                        WifiDoctorPage(database: database),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.cardGap),
+                  ],
                 ),
               ),
-              if (state.riwayatTerakhir.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Pemeriksaan terakhir',
-                  style: Theme.of(context).textTheme.titleMedium,
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.pagePadding,
                 ),
-                const SizedBox(height: 8),
-                for (final item in state.riwayatTerakhir)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.check_circle_outline),
-                    title: Text(
-                      'Skor ${item.score} '
-                      '(${labelKategori(item.category)})',
-                    ),
-                    subtitle: Text(formatTanggalWaktu(item.createdAt)),
-                  ),
-              ],
+                sliver: _GridDokter(
+                  onBuka: (halaman) => _buka(context, halaman),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.pagePadding,
+                ),
+                sliver: SliverList.list(
+                  children: [
+                    if (state.riwayatTerakhir.isNotEmpty) ...[
+                      const SectionHeader(title: 'Pemeriksaan terakhir'),
+                      for (final item in state.riwayatTerakhir)
+                        _BarisRiwayat(item: item),
+                    ],
+                    const SizedBox(height: AppTheme.bottomPadding),
+                  ],
+                ),
+              ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Skeleton panel skor dan grid saat riwayat awal dimuat.
+class _SkeletonDashboard extends StatelessWidget {
+  const _SkeletonDashboard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SkeletonBlock(width: 120, height: 56),
+          const SizedBox(height: 12),
+          const SkeletonBlock(height: 8),
+          const SizedBox(height: 20),
+          const SkeletonBlock(height: 15),
+          const SizedBox(height: 12),
+          const SkeletonBlock(height: 15),
+          const SizedBox(height: 20),
+          const SkeletonBlock(height: 56),
+          const SizedBox(height: 16),
+          Text(
+            'Memuat riwayat...',
+            style: AppTheme.caption,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Panel skor: meter besar, rincian per komponen, tombol diagnosis.
+class _PanelSkor extends StatelessWidget {
+  const _PanelSkor({required this.state, required this.onDiagnosis});
+
+  final DashboardState state;
+  final VoidCallback onDiagnosis;
+
+  /// Label tampil untuk kunci rincian diagnosis ('wifi', 'baterai',
+  /// dan seterusnya). Isi penjelasannya tidak berubah.
+  String _labelKomponen(String kunci) {
+    switch (kunci) {
+      case 'wifi':
+        return 'WiFi';
+      case 'baterai':
+        return 'Baterai';
+      case 'penyimpanan':
+        return 'Penyimpanan';
+      case 'performa':
+        return 'Performa';
+      case 'keamanan':
+        return 'Keamanan';
+      default:
+        return kunci;
+    }
+  }
+
+  StatusTone _toneKategori(HealthCategory kategori) {
+    switch (kategori) {
+      case HealthCategory.baik:
+        return StatusTone.success;
+      case HealthCategory.cukup:
+        return StatusTone.warning;
+      case HealthCategory.buruk:
+        return StatusTone.danger;
+    }
+  }
+
+  Color _warnaKategori(HealthCategory kategori) {
+    switch (kategori) {
+      case HealthCategory.baik:
+        return AppTheme.success;
+      case HealthCategory.cukup:
+        return AppTheme.warning;
+      case HealthCategory.buruk:
+        return AppTheme.danger;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final skor = state.skor;
+    final berjalan = state.status == DiagnosisStatus.berjalan;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (skor != null)
+            MeterGauge(
+              fraction: skor.score / 100,
+              displayValue: '${skor.score}',
+              displayUnit: '/ 100',
+              animatedNumber: skor.score.toDouble(),
+              formatNumber: (nilai) => '${nilai.round()}',
+              fillColor: _warnaKategori(skor.category),
+              chip: StatusChip(
+                label: skor.category.label,
+                icon: skor.category == HealthCategory.baik
+                    ? Icons.check
+                    : Icons.warning_amber,
+                tone: _toneKategori(skor.category),
+              ),
+              semanticsLabel:
+                  'Skor kesehatan ${skor.score} dari 100, '
+                  '${skor.category.label}',
+            )
+          else
+            const EmptyState(
+              icon: Icons.health_and_safety,
+              title: 'Belum ada skor kesehatan',
+              message: 'Jalankan diagnosis untuk mengukur kondisi HP '
+                  'ini. Hasilnya tersimpan di perangkat ini.',
+            ),
+          if (berjalan) ...[
+            const SizedBox(height: 20),
+            const LinearProgressIndicator(),
+            if (state.tahap.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                state.tahap,
+                style: AppTheme.body.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ],
+          if (state.status == DiagnosisStatus.gagal) ...[
+            const SizedBox(height: 20),
+            ErrorState(
+              title: 'Diagnosis gagal',
+              message: state.pesan,
+              onRetry: onDiagnosis,
+            ),
+          ],
+          const SizedBox(height: 20),
+          PrimaryButton(
+            label: berjalan ? 'Mendiagnosis' : 'Diagnosis satu ketuk',
+            icon: Icons.play_arrow,
+            onPressed: berjalan ? null : onDiagnosis,
+          ),
+          if (skor != null) ...[
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 16),
+            for (final entri in skor.details.entries) ...[
+              StatRow(
+                label: _labelKomponen(entri.key),
+                value: entri.value,
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Baris unggulan Dokter WiFi: lebar penuh, dengan status terakhir
+/// dari riwayat WiFi bila ada.
+class _BarisUnggulanWifi extends StatelessWidget {
+  const _BarisUnggulanWifi({required this.wifiTerakhir, required this.onTap});
+
+  final WifiReport? wifiTerakhir;
+  final VoidCallback onTap;
+
+  String _statusTerakhir() {
+    final laporan = wifiTerakhir;
+    if (laporan == null) {
+      return 'Ukur kecepatan dan latensi WiFi';
+    }
+    final kecepatan = laporan.downloadKbps;
+    if (kecepatan == null) {
+      return 'Terakhir: ${formatTanggalWaktu(laporan.createdAt)}';
+    }
+    return 'Terakhir: ${formatKbps(kecepatan)}, '
+        '${formatTanggalWaktu(laporan.createdAt)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        children: [
+          const Icon(Icons.wifi, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Dokter WiFi', style: AppTheme.section),
+                const SizedBox(height: 4),
+                Text(
+                  _statusTerakhir(),
+                  style: AppTheme.body.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+        ],
+      ),
+    );
+  }
+}
+
+/// Grid dua kolom lima dokter lain (sliver, agar dashboard hanya
+/// punya satu Scrollable).
+class _GridDokter extends StatelessWidget {
+  const _GridDokter({required this.onBuka});
+
+  final void Function(Widget halaman) onBuka;
+
+  @override
+  Widget build(BuildContext context) {
+    final sel = <_SelDokter>[
+      _SelDokter(
+        icon: Icons.battery_full,
+        title: 'Dokter Baterai',
+        keterangan: 'Level, status, dan estimasi waktu pakai',
+        halaman: const BatteryPage(),
+      ),
+      _SelDokter(
+        icon: Icons.storage,
+        title: 'Dokter Penyimpanan',
+        keterangan: 'Ruang kosong dan cache aplikasi ini',
+        halaman: const StoragePage(),
+      ),
+      _SelDokter(
+        icon: Icons.speed,
+        title: 'Dokter Performa',
+        keterangan: 'RAM, CPU, dan suhu perangkat',
+        halaman: const PerformancePage(),
+      ),
+      _SelDokter(
+        icon: Icons.security,
+        title: 'Dokter Keamanan',
+        keterangan: 'Izin aplikasi yang perlu ditinjau',
+        halaman: const SecurityPage(),
+      ),
+      _SelDokter(
+        icon: Icons.psychology,
+        title: 'Diagnosis AI',
+        keterangan: 'Saran diagnosis dari keluhan yang ditulis',
+        halaman: const AiDiagnosisPage(),
+      ),
+    ];
+    return SliverGrid(
+      // Tinggi sel 184, bukan 168 seperti spesifikasi: isi sel (ikon
+      // 28 + jeda 12 + judul 2 baris + jeda 4 + keterangan 2 baris)
+      // butuh 133 px, sementara 168 hanya memberi 128 px setelah
+      // padding kartu. Judul "Dokter Penyimpanan" dan "Dokter
+      // Keamanan" membungkus ke 2 baris di layar 390 px dan selnya
+      // meluap 8 px. 184 memberi ruang 144 px.
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: AppTheme.cardGap,
+        mainAxisSpacing: AppTheme.cardGap,
+        mainAxisExtent: 184,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final item = sel[index];
+          return AppCard(
+            onTap: () => onBuka(item.halaman),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(item.icon, size: 28),
+                const SizedBox(height: 12),
+                Text(
+                  item.title,
+                  style: AppTheme.section,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.keterangan,
+                  style: AppTheme.body.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          );
+        },
+        childCount: sel.length,
+      ),
+    );
+  }
+}
+
+class _SelDokter {
+  const _SelDokter({
+    required this.icon,
+    required this.title,
+    required this.keterangan,
+    required this.halaman,
+  });
+
+  final IconData icon;
+  final String title;
+  final String keterangan;
+  final Widget halaman;
+}
+
+/// Baris pemeriksaan terakhir: tanggal di kiri, skor tabular tebal
+/// di kanan, tanpa ikon.
+class _BarisRiwayat extends StatelessWidget {
+  const _BarisRiwayat({required this.item});
+
+  final HealthCheck item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              formatTanggalWaktu(item.createdAt),
+              style: AppTheme.label,
+            ),
+          ),
+          Text(
+            'Skor ${item.score} (${labelKategori(item.category)})',
+            style: AppTheme.body.copyWith(
+              fontWeight: FontWeight.w600,
+              fontFeatures: AppTheme.tabularFigures,
+            ),
+          ),
+        ],
       ),
     );
   }
