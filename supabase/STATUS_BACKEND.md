@@ -1,9 +1,75 @@
-# Status Backend Supabase — Dokter HP v1.0.0
+# Status Backend Supabase — Dokter HP
+
+Tanggal: 19–20 Nov 2026 WIB (Gelombang 2)
+Status: **BLOKIR DICABUT — proyek Supabase baru live dan terverifikasi.**
+
+## Proyek baru (Gelombang 2)
+
+- Akun: `adiplowkey+dokterhp@gmail.com` (alias → inbox `adiplowkey`),
+  email terkonfirmasi 19 Nov 2026, 23:41 WIB.
+- Organisasi: `dokter-hp` (Free).
+- Proyek: `dokter-hp`, ref `sugqpbkfrrrpadwxslzc`.
+- URL: `https://sugqpbkfrrrpadwxslzc.supabase.co`
+- Region: ap-southeast-1. Plan: Free/Nano. Status: Healthy.
+
+Catatan keamanan: dokumen ini tidak memuat nilai secret/kunci/token
+apa pun — hanya ref dan URL proyek (keduanya bukan rahasia).
+
+## Yang sudah live dan terverifikasi (19–20 Nov 2026)
+
+- **Migrasi 01–06** diterapkan via Management API: 4 tabel (`profiles`,
+  `health_checks`, `wifi_reports`, `ai_diagnoses`) + trigger
+  `handle_new_user` (auto-create `profiles`) + grants (anon SELECT,
+  authenticated CRUD, service_role ALL). Trigger TERBUKTI live:
+  profil dibuat otomatis saat pengguna uji dibuat.
+- **RLS re-run: 13 PASS, 0 FAIL** — tanpa kredensial 401; anon-only
+  200 `[]` keempat tabel; function tanpa JWT 401.
+- **Edge Function `ai-diagnose`: ter-deploy ACTIVE, uji live 200 LOLOS
+  20 Nov 2026 00:43 WIB** (HTTP 200 dalam 17,0 dtk, JWT pengguna asli,
+  diagnosis diterima 2056 karakter). Model utama
+  `gemini-3.5-flash-lite` + cadangan `gemini-3.1-flash-lite`
+  (`gemini-2.0-flash` pensiun — 404; `gemini-3.8-flash` overload malam
+  itu — 503; keduanya terverifikasi live; v1beta tetap berlaku).
+  Timeout 60 dtk per panggilan, maks 1 retry 5xx ke model cadangan.
+  `GEMINI_API_KEY` diatur server-side. Cek pengguna-terautentikasi
+  ditambahkan (anon JWT ditolak 401 sebelum memanggil Gemini).
+- **Sinkronisasi TERBUKTI live:** POST `health_checks` + `wifi_reports`
+  201, GET 200; cleanup terverifikasi (pengguna uji + cascade
+  `profiles` terhapus, 404).
+- **Provider Google ENABLED** (pakai ulang klien "Dokter HP Web");
+  rantai OAuth TERBUKTI: GET `/auth/v1/authorize` → 302 ke
+  accounts.google.com dengan `redirect_to` `dokterhp://login-callback`
+  + callback Supabase benar.
+- **GitHub secrets terisi:** `SUPABASE_URL` + `SUPABASE_ANON_KEY`
+  (HTTP 201, terverifikasi API).
+- **APK v1.1.1+4:** wiring NOL perubahan Dart (config `--dart-define`);
+  copy "Lupa PIN?" diperbaiki jujur; `flutter analyze` 0,
+  `flutter test` 98 lolos 0 gagal; `hidden_files/` masuk `.gitignore`.
+
+## Yang tersisa
+
+1. **Uji login Google di HP FISIK masih menunggu owner** (tidak bisa
+   dari VM/browser). Rantai OAuth sudah terbukti sampai ke callback;
+   yang belum adalah login sungguhan di perangkat.
+
+## Yang sengaja tidak dilakukan
+
+- `fcm-notify` sengaja TIDAK di-deploy — APK nol kode FCM.
+- L2 (fallback Worker Cloudflare): desain selesai, BELUM LAYAK
+  (pemblokir auth: cookie-only, tanpa Bearer, rute `/api/sync/*`
+  belum ada) — ditunda, tidak menghalangi v1.1.1.
+- L3 (jeda proyek lama / numpang proyek lama): ditolak sesuai
+  keputusan. Detail: `docs/backend-layers.md`.
+
+---
+
+## Riwayat: blokir 12 Nov 2026 (sudah tidak berlaku)
 
 Tanggal: 12 Nov 2026 ~00:40 WIB (17:40 UTC)
-Status: **TERBLOKIR — proyek Supabase baru tidak bisa dibuat di akun ini.**
+Status saat itu: **TERBLOKIR — proyek Supabase baru tidak bisa dibuat
+di akun ini.**
 
-## Bukti limit (dari Supabase Management API, akun adiprmx)
+### Bukti limit (dari Supabase Management API, akun adiprmx)
 
 Organisasi yang ada: 1 — `adipmusic` (`hszwvtnzencnuehcsbpx`).
 Proyek aktif: 2 — `adipmusic` (`jebafddwupyqpwevhsqn`, ap-southeast-2) dan
@@ -26,7 +92,7 @@ organisasi** tempat ia Owner/Admin — organisasi baru TIDAK bisa mengakali
 limit ini. Dikonfirmasi juga oleh dokumentasi Supabase dan beberapa sumber
 independen.
 
-## Yang sudah disiapkan (siap jalan begitu proyek tersedia)
+### Yang sudah disiapkan saat itu (siap jalan begitu proyek tersedia)
 
 - 4 migrasi di `supabase/migrations/` sudah diperiksa isinya: tiap tabel
   (`profiles`, `health_checks`, `wifi_reports`, `ai_diagnoses`) memakai
@@ -45,16 +111,7 @@ independen.
   nanti, buat kata sandi baru yang baru. `.gitignore` sekarang
   mengecualikan `secrets/`.
 
-## Yang belum bisa dilakukan (menunggu keputusan owner)
-
-1. Migrasi (langkah 3) — belum ada proyek target.
-2. Deploy Edge Function (langkah 4) — belum ada proyek target.
-3. Secret `GEMINI_API_KEY` — belum tersedia; JANGAN diisi karangan.
-   Function `ai-diagnose` akan mengembalikan error sampai secret ini diisi.
-   Secret lain yang akan dibutuhkan `fcm-notify`: `FCM_NOTIFY_ALLOWED_USER_IDS`,
-   `FCM_PROJECT_ID`, `FCM_ACCESS_TOKEN` (semua belum tersedia).
-
-## Opsi gratis yang tersisa (perlu keputusan owner)
+### Opsi gratis yang dipertimbangkan saat itu (perlu keputusan owner)
 
 A. **Pause salah satu proyek yang ada** (proyek yang di-pause tidak dihitung
    dalam limit) — tapi `adipmusic` dan `adipqris-sg` keduanya live; pause
@@ -72,7 +129,7 @@ D. **Pindah backend ke Firebase** (sudah dipakai Karir) — perubahan arsitektur
 Tidak ada layanan berbayar, kartu kredit, atau upgrade Pro yang dipakai
 atau diusulkan dalam pekerjaan ini.
 
-## Catatan teknis
+### Catatan teknis
 
 - Konektor `custom.supabase-mgmt` (`sb_mgmt.py`) memakai path import
   `dynamic_credentials` yang sudah tidak ada

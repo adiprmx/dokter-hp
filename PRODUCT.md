@@ -173,7 +173,8 @@ Panduan lengkap ada di `docs/panduan-wifi-turun.md`. Ringkasnya:
   aplikasi lewat Pengaturan Android > Aplikasi > Dokter HP >
   Penyimpanan > Hapus data, lalu membuka kembali aplikasi dan
   mengatur PIN baru. Riwayat yang sudah tersinkron ke server tetap
-  aman dan kembali setelah masuk; riwayat lokal yang belum
+  tersimpan di sana, tapi belum bisa kembali ke aplikasi (sync saat
+  ini hanya upload, belum ada jalur unduh); riwayat lokal yang belum
   tersinkron akan hilang. Jalan ini dijelaskan di layar kunci
   (dialog "Lupa PIN?") dan di halaman ini.
 - **Biometrik**: sidik jari/wajah lewat autentikasi sistem

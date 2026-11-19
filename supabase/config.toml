@@ -6,7 +6,7 @@
 # Sesuaikan `project_id` setelah proyek dibuat di dashboard Supabase,
 # lalu hubungkan dengan perintah `supabase link --project-ref <ref-id>`.
 
-project_id = "dokter-hp"
+project_id = "sugqpbkfrrrpadwxslzc"
 
 [api]
 enabled = true
@@ -34,7 +34,7 @@ enabled = true
 port = 54323
 api_url = "http://127.0.0.1:54321"
 
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 

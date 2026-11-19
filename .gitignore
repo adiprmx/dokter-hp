@@ -25,3 +25,6 @@ Thumbs.db
 # database sempat ter-push di commit 5019c158, lalu dihapus di commit
 # 77d7bc68; nilai itu sudah dibuang dan tidak boleh dipakai lagi).
 secrets/
+
+# Catatan kerja internal (audit, log, status) — bukan bagian produk.
+hidden_files/

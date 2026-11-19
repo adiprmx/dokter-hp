@@ -15,10 +15,11 @@ import 'package:dokter_hp/features/auth/pin_service.dart';
 /// (dialog "Lupa PIN?") dan di PRODUCT.md: PIN hanya tersimpan lokal
 /// sebagai hash, jadi tidak ada jalan reset lewat server. Satu-satunya
 /// pemulihan adalah menghapus data aplikasi lewat Pengaturan Android.
-/// Riwayat yang sudah tersinkron ke Supabase tetap aman dan kembali
-/// setelah masuk; riwayat lokal yang belum tersinkron akan hilang.
+/// Riwayat yang sudah tersinkron ke Supabase tetap tersimpan di
+/// server, tapi TIDAK kembali ke aplikasi: sync hanya upload, belum
+/// ada jalur unduh. Riwayat lokal yang belum tersinkron akan hilang.
 /// Karena itu gerbang ini tidak pernah mengunci akun Supabase pengguna:
-/// akun dan data server tetap bisa diakses setelah masuk kembali.
+/// akun tetap bisa dipakai masuk kembali setelah hapus data.
 class LockGate extends StatefulWidget {
   const LockGate({super.key, required this.child, PinService? pinService})
       : _pinService = pinService ?? const PinService();
@@ -224,10 +225,11 @@ class _LockPageState extends State<LockPage> {
           'aplikasi lewat Pengaturan Android > Aplikasi > Dokter HP > '
           'Penyimpanan > Hapus data, lalu buka kembali aplikasi dan '
           'atur PIN baru.\n\n'
-          'Riwayat yang sudah tersinkron ke server tetap aman dan '
-          'kembali setelah Anda masuk. Riwayat lokal yang belum '
-          'tersinkron akan hilang. Akun Anda tidak terkunci: setelah '
-          'hapus data, Anda tetap bisa masuk dengan akun yang sama.',
+          'Riwayat yang sudah tersimpan di akun Anda tetap ada, tapi '
+          'belum bisa dimunculkan lagi di aplikasi ini. Riwayat yang '
+          'masih ada di HP ini saja akan hilang. Akun Anda tidak '
+          'terkunci: setelah hapus data, Anda tetap bisa masuk dengan '
+          'akun yang sama.',
         ),
         actions: [
           TextButton(
